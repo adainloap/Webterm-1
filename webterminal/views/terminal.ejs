@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Terminal</title>
+  <style>
+    :root {
+      --bg-color: #0d0d0d;
+      --terminal-bg: rgba(25, 25, 25, 0.9);
+      --text-color: #e0e0e0;
+      --accent-color: #00ff88;
+      --border-color: #333;
+      --button-bg: rgba(45, 45, 45, 0.7);
+      --button-hover: rgba(0, 255, 136, 0.15);
+      --delete-btn-bg: #e74c3c;
+      --delete-btn-hover: #c0392b;
+      --modal-bg: rgba(0, 0, 0, 0.7);
+      --input-bg: rgba(40, 40, 40, 0.9);
+    }
+
+    body#terminal-page {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .background-video {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      min-width: 100%;
+      min-height: 100%;
+      z-index: -100;
+      filter: brightness(0.4);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: rgba(10, 10, 10, 0.6);
+      backdrop-filter: blur(5px);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 10;
+    }
+
+    .welcome-message {
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      background: var(--button-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+      border-radius: 9999px;
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s, color 0.3s;
+    }
+
+    .action-btn:hover {
+      background: var(--button-hover);
+      transform: translateY(-2px);
+      color: var(--accent-color);
+      border-color: var(--accent-color);
+    }
+
+    .delete-btn {
+      background: var(--delete-btn-bg);
+      color: #fff;
+    }
+
+    .delete-btn:hover {
+      background: var(--delete-btn-hover);
+      color: #fff;
+    }
+
+    .main-content {
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+    }
+
+    #terminalContainer {
+      width: 100%;
+      height: 100%;
+      background-color: var(--terminal-bg);
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: rgba(25, 25, 25, 0.9);
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+    }
+
+    .close-button {
+      position: absolute;
+      top: 1rem;
+      right: 1.5rem;
+      color: #aaa;
+      font-size: 2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+
+    .close-button:hover {
+      color: var(--accent-color);
+    }
+
+    #chat-modal .modal-content {
+      display: flex;
+      flex-direction: column;
+      height: 90%;
+      width: 90%;
+      max-width: 600px;
+    }
+
+    .chat-messages {
+      flex-grow: 1;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+
+    .message .username {
+      color: var(--accent-color);
+      font-weight: bold;
+    }
+
+    .chat-input {
+      display: flex;
+      border-top: 1px solid var(--border-color);
+      margin-top: 1rem;
+    }
+
+    .chat-input input {
+      flex-grow: 1;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 0.75rem;
+      border-radius: 8px;
+    }
+
+    .chat-input button {
+      background-color: var(--accent-color);
+      color: #000;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      margin-left: 0.5rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body id="terminal-page">
+  <video autoplay muted loop playsinline id="bg-video" class="background-video">
+    <source src="/videos/T.mp4" type="video/mp4">
+  </video>
+
+  <header class="header">
+    <div class="welcome-message">
+      <p>Welcome, <%= user.username %>!</p>
+    </div>
+    <div class="action-group">
+      <% if (user.isAdmin) { %>
+        <a href="/register" class="action-btn">New User</a>
+        <a href="/admin-dashboard" class="action-btn" id="admin-panel-link">Admin Panel</a>
+      <% } else { %>
+        <a href="/my-folder" class="action-btn">My Folder</a>
+      <% } %>
+      <button id="chat-btn" class="action-btn">Chat</button>
+      <a href="/settings" class="action-btn">Settings</a>
+      <a href="/logout" class="action-btn">Logout</a>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div id="terminalContainer"></div>
+  </main>
+
+  <!-- Chat Modal -->
+  <div id="chat-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button">&times;</span>
+      <h3>Chat</h3>
+      <div class="chat-messages" id="chat-messages"></div>
+      <form class="chat-input" id="chat-form">
+        <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <link rel="stylesheet" href="https://unpkg.com/xterm/css/xterm.css" />
+  <script src="https://unpkg.com/xterm/lib/xterm.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    // Background video fallback
+    const video = document.getElementById('bg-video');
+    if (video) {
+      video.addEventListener('ended', () => {
+        video.style.display = 'none';
+      });
+    }
+
+    // Initialize terminal & socket
+    const term = new window.Terminal({
+      cols: 80,
+      rows: 24,
+      cursorBlink: true,
+      theme: { background: 'transparent' },
+      fontFamily: 'monospace'
+    });
+    term.open(document.getElementById('terminalContainer'));
+
+    term.onData(data => socket.emit('term_input', data));
+    socket.on('term_output', data => term.write(data));
+
+    // Fit terminal to container
+    function fitTerminal() {
+      const container = document.getElementById('terminalContainer');
+      const cols = Math.floor(container.offsetWidth / 9);
+      const rows = Math.floor(container.offsetHeight / 17);
+      term.resize(cols, rows);
+      socket.emit('resize', { cols, rows });
+    }
+    window.addEventListener('resize', fitTerminal);
+    fitTerminal();
+
+    // Modal logic
+    function showModal(modal) { modal.style.display = 'flex'; }
+    function hideModal(modal) { modal.style.display = 'none'; }
+    document.querySelectorAll('.close-button').forEach(btn => {
+      btn.onclick = e => hideModal(e.target.closest('.modal'));
+    });
+    window.onclick = e => {
+      if (e.target.classList.contains('modal')) hideModal(e.target);
+    };
+
+    // Chat logic
+    const chatBtn = document.getElementById('chat-btn');
+    const chatModal = document.getElementById('chat-modal');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const chatMessages = document.getElementById('chat-messages');
+
+    if (chatBtn) {
+      chatBtn.onclick = () => showModal(chatModal);
+    }
+
+    if (chatForm) {
+      chatForm.addEventListener('submit', e => {
+        e.preventDefault();
+        if (chatInput.value.trim()) {
+          socket.emit('chat_message', chatInput.value.trim());
+          chatInput.value = '';
+        }
+      });
+
+      socket.on('chat_message', data => {
+        const item = document.createElement('div');
+        item.classList.add('message');
+        const usernameSpan = document.createElement('span');
+        usernameSpan.classList.add('username');
+        usernameSpan.textContent = data.username + ': ';
+        item.appendChild(usernameSpan);
+        item.appendChild(document.createTextNode(data.message));
+        chatMessages.appendChild(item);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      });
+    }
+
+    // Explicit Admin Panel redirect fix
+    document.addEventListener('DOMContentLoaded', () => {
+      const adminPanelLink = document.getElementById('admin-panel-link');
+      if (adminPanelLink) {
+        adminPanelLink.addEventListener('click', e => {
+          e.preventDefault();
+          window.location.href = adminPanelLink.href;
+        });
+      }
+    });
+  </script>
+</body>
+</html>

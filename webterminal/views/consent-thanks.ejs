@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Consent Received</title>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body>
+  <div class="center-card">
+    <h2>Thank You — Consent Received</h2>
+    <p>Parental consent for <strong><%= rec.username %></strong> was recorded at <%= rec.signedAt %>.</p>
+    <p>The child account has been created in the system (please ask the child to reset their password).</p>
+    <a href="/login">Go to Login</a>
+  </div>
+</body>
+</html>

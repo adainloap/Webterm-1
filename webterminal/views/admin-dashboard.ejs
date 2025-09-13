@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <style>
+    :root {
+      --primary-color: #4a90e2;
+      --secondary-color: #ffffff;
+      --background-color: #121212;
+      --card-background: #1e1e1e;
+      --text-color: #e0e0e0;
+      --border-color: #333333;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .background-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+    }
+
+    body.static-background {
+      background-image: url('/images/admin-final-bg.png');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 95%;
+      margin-top: 40px;
+      padding: 20px;
+      background-color: rgba(30, 30, 30, 0.9);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    h1 { text-align: center; margin-bottom: 20px; font-size: 2em; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    table th, table td {
+      padding: 12px 15px;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    table th {
+      background-color: rgba(0,0,0,0.5);
+      color: var(--primary-color);
+    }
+
+    table tr:nth-child(even) { background-color: #1b1b1b; }
+    table tr:hover { background-color: #2a2a2a; }
+
+    .online { color: #0f0; font-weight: bold; }
+    .offline { color: #f00; font-weight: bold; }
+
+    button {
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      color: white;
+    }
+
+    .action-btns button { margin-right: 5px; }
+
+    .ban-btn { background-color: #d9534f; }
+    .ban-btn:hover { background-color: #f00; }
+
+    .folder-btn { background-color: #4a90e2; }
+    .folder-btn:hover { background-color: #3870b2; }
+
+    .nav-btn {
+      display: inline-block;
+      background-color: var(--primary-color);
+      color: var(--secondary-color);
+      padding: 8px 15px;
+      margin-top: 20px;
+      margin-right: 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+
+    .nav-btn:hover { background-color: #3870b2; }
+
+    .logout-btn {
+      display: inline-block;
+      background-color: #0a0;
+      color: var(--secondary-color);
+      padding: 8px 15px;
+      margin-top: 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .logout-btn:hover { background-color: #0f0; color: #000; }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.8);
+    }
+
+    .modal-content {
+      background-color: var(--card-background);
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 10px;
+      width: 400px;
+      max-height: 70%;
+      overflow-y: auto;
+    }
+
+    .user-item {
+      padding: 5px 10px;
+      margin: 3px 0;
+      background-color: #222;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .user-item.selected { background-color: #4caf50; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px);} to { opacity:1; transform: translateY(0);} }
+  </style>
+</head>
+<body>
+  <video autoplay muted playsinline id="bg-video" class="background-video">
+    <source src="/videos/admin.mp4" type="video/mp4">
+  </video>
+
+  <div class="container">
+    <h1>Admin Dashboard</h1>
+
+    <button id="toggle-private-ip" style="background-color:#888; margin-bottom:10px;">Show Private IPs</button>
+    <button id="open-user-modal" style="background-color:#4caf50; margin-bottom:10px;">Select Users</button>
+
+    <table id="users-table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Email</th>
+          <th>DOB</th>
+          <th>Created At</th>
+          <th>Public IP</th>
+          <th class="private-ip-col">Private IP</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="users-tbody">
+        <% users.forEach(user => { %>
+          <tr>
+            <td><%= user.username %></td>
+            <td><%= user.firstName %></td>
+            <td><%= user.lastName %></td>
+            <td><%= user.email %></td>
+            <td><%= user.dob %></td>
+            <td><%= new Date(user.createdAt).toLocaleDateString() || 'N/A' %></td>
+            <td><%= user.public_ip || 'N/A' %></td>
+            <td class="private-ip-col" data-ip="<%= user.private_ip || 'N/A' %>"><%= user.private_ip || 'Not Found' %></td>
+            <td class="<%= user.status === 'online' ? 'online' : 'offline' %>"><%= user.status || 'Offline' %></td>
+            <td class="action-btns">
+              <% if (!user.isAdmin) { %>
+                <form method="POST" action="/admin-ban" onsubmit="return confirm('Ban <%= user.username %>?');" style="display:inline;">
+                  <input type="hidden" name="username" value="<%= user.username %>" />
+                  <button type="submit" class="ban-btn">Ban</button>
+                </form>
+              <% } else { %>Admin<% } %>
+              <a href="/admin/folder/<%= user.username %>" target="_blank"><button type="button" class="folder-btn">Open Folder</button></a>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+
+    <a href="/terminal" class="nav-btn">Back to Terminal</a>
+    <a href="/logout" class="logout-btn">Logout</a>
+  </div>
+
+  <!-- User Modal -->
+  <div id="user-modal" class="modal">
+    <div class="modal-content">
+      <h3>Select Users to Make Admin</h3>
+      <div id="user-list"></div>
+      <button id="make-selected-admins" style="margin-top:10px; width:100%; background-color:#4caf50;">Make Admin</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const video = document.getElementById('bg-video');
+    video.addEventListener('ended', function() {
+      video.style.display = 'none';
+      document.body.classList.add('static-background');
+    });
+
+    const socket = io();
+
+    // Private IP toggle
+    let privateVisible = false;
+    document.getElementById('toggle-private-ip').addEventListener('click', () => {
+      privateVisible = !privateVisible;
+      document.querySelectorAll('.private-ip-col').forEach(el => {
+        el.textContent = privateVisible ? el.getAttribute('data-ip') : 'Not Found';
+      });
+      document.getElementById('toggle-private-ip').textContent = privateVisible ? 'Hide Private IPs' : 'Show Private IPs';
+    });
+
+    // Pass server-side users to client
+    const usersData = <%- JSON.stringify(users.filter(u => !u.isAdmin)) %>;
+
+    const userModal = document.getElementById('user-modal');
+    document.getElementById('open-user-modal').addEventListener('click', () => {
+      userModal.style.display = 'block';
+      const userList = document.getElementById('user-list');
+      userList.innerHTML = '';
+
+      usersData.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        div.textContent = user.username;
+        div.addEventListener('click', () => div.classList.toggle('selected'));
+        userList.appendChild(div);
+      });
+    });
+
+    document.getElementById('make-selected-admins').addEventListener('click', async () => {
+      const selectedUsers = Array.from(document.querySelectorAll('.user-item.selected')).map(u => u.textContent);
+      if (selectedUsers.length === 0) return alert('No users selected');
+      if (!confirm(`Make the following users admin?\n${selectedUsers.join(', ')}`)) return;
+
+      try {
+        for (const username of selectedUsers) {
+          const res = await fetch('/admin-make-admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+          });
+          if (!res.ok) console.error(`Failed to make ${username} admin`);
+          else console.log(`${username} is now an admin`);
+        }
+      } catch(err) {
+        console.error('Error making admin:', err);
+      }
+
+      userModal.style.display = 'none';
+      socket.emit('update_users');
+    });
+
+    window.onclick = function(event) {
+      if (event.target == userModal) userModal.style.display = 'none';
+    };
+  </script>
+</body>
+</html>

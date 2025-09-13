@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Terminal Login</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#121212">
+
+  <style>
+    .container {
+      width: 300px;
+      margin: 100px auto;
+      padding: 20px;
+      background-color: rgba(0, 0, 0, 0.75);
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+      color: white;
+      position: relative;
+      z-index: 2;
+    }
+    h1 { text-align: center; font-size: 24px; }
+    label { display: block; margin: 10px 0 5px; }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .error { color: #ff6b6b; font-size: 14px; margin-bottom: 15px; text-align: center; }
+    .login-btn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px;
+      width: 100%;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .login-btn:hover { background-color: #45a049; }
+    .login-btn:disabled { background-color: #4CAF50; opacity: 0.5; cursor: not-allowed; }
+    a { color: #7edcff; }
+    .oauth-btn {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      font-weight: bold;
+    }
+    .oauth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .github-btn { background-color: #333; color: white; }
+    .google-btn { background-color: #DB4437; color: white; }
+    .disabled-btn { background-color: #555; color: #ccc; cursor: not-allowed; }
+
+    .background-video {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      min-width: 100%;
+      min-height: 100%;
+      z-index: -1;
+      object-fit: cover;
+    }
+
+    .static-background {
+      background-image: url('/images/login-final-bg.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .tos-box {
+      margin-top: 10px;
+      font-size: 14px;
+      text-align: center;
+    }
+    .tos-box label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tos-box input[type="checkbox"] {
+      transform: scale(1.2);
+    }
+  </style>
+</head>
+<body id="login-page">
+
+  <video autoplay muted playsinline id="bg-video" class="background-video">
+    <source src="/videos/log.mp4" type="video/mp4">
+  </video>
+
+  <div class="container">
+    <h1>Login</h1>
+    <div style="text-align:center; margin-bottom:10px;">
+      <a href="/register">Create an account</a>
+    </div>
+
+    <% if (error) { %>
+      <div class="error"><%= error %></div>
+    <% } %>
+
+    <!-- Email/Password Login -->
+    <form id="loginForm" action="/login" method="POST">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required>
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required>
+      <button type="submit" class="login-btn" id="loginBtn" disabled>Login</button>
+      
+      <div style="text-align:center; margin-top:15px;">
+        <a href="/forgot-password">Forgot your password?</a>
+      </div>
+
+      <!-- Terms of Service checkbox -->
+      <div class="tos-box">
+        <label for="agreeTOS">
+          <input type="checkbox" id="agreeTOS">
+          <span>I agree to the <a href="/tos">Terms of Service</a></span>
+        </label>
+      </div>
+    </form>
+
+    <hr style="margin:20px 0; border-color:#555;">
+
+    <!-- OAuth Buttons -->
+    <button class="oauth-btn github-btn" id="githubBtn" onclick="loginWithGitHub()" disabled>Login with GitHub</button>
+    <button class="oauth-btn google-btn" id="googleBtn" onclick="loginWithGoogle()" disabled>Login with Google</button>
+    <button class="oauth-btn disabled-btn" disabled>Login with Apple (Coming Soon)</button>
+    <button class="oauth-btn disabled-btn" disabled>Login with Facebook (Coming Soon)</button>
+  </div>
+
+  <script>
+    // Handle background video loop or transition to static image
+    const video = document.getElementById('bg-video');
+    video.addEventListener('ended', function() {
+      video.style.display = 'none';
+      document.body.classList.add('static-background');
+    });
+
+    // Get all buttons that need to be disabled/enabled
+    const tosCheckbox = document.getElementById('agreeTOS');
+    const loginBtn = document.getElementById('loginBtn');
+    const githubBtn = document.getElementById('githubBtn');
+    const googleBtn = document.getElementById('googleBtn');
+
+    // Add a single listener to handle all buttons
+    tosCheckbox.addEventListener('change', () => {
+      const enabled = tosCheckbox.checked;
+      loginBtn.disabled = !enabled;
+      githubBtn.disabled = !enabled;
+      googleBtn.disabled = !enabled;
+    });
+
+    // This handles a case where a previous video might have ended,
+    // so we set the initial state correctly
+    document.addEventListener('DOMContentLoaded', () => {
+      if (video.currentTime === video.duration) {
+        document.body.classList.add('static-background');
+        video.style.display = 'none';
+      }
+    });
+  </script>
+
+  <!-- External Firebase Login JS -->
+  <script type="module">
+    import { loginWithGitHub, loginWithGoogle } from "/login.js";
+    window.loginWithGitHub = loginWithGitHub;
+    window.loginWithGoogle = loginWithGoogle;
+  </script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('Service Worker registered with scope:', registration.scope);
+          })
+          .catch(error => {
+            console.error('Service Worker registration failed:', error);
+          });
+      });
+    }
+  </script>
+</body>
+</html>

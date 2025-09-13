@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title><%= title || "WebTerminal" %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Codespace WebTerminal</div>
+    <nav>
+      <% if (user) { %>
+        <form method="POST" action="/logout" style="display:inline;">
+          <button class="btn small" type="submit">Logout (<%= user.username %>)</button>
+        </form>
+      <% } %>
+    </nav>
+  </header>
+  <main class="container">
+    <%- body %>
+  </main>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <style>
+    :root {
+      --primary-color: #4a90e2;
+      --secondary-color: #ffffff;
+      --background-color: #121212;
+      --card-background: #1e1e1e;
+      --text-color: #e0e0e0;
+      --border-color: #333333;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .background-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+    }
+
+    body.static-background {
+      background-image: url('/images/admin-final-bg.png');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 95%;
+      margin-top: 40px;
+      padding: 20px;
+      background-color: rgba(30, 30, 30, 0.9);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    h1 { text-align: center; margin-bottom: 20px; font-size: 2em; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    table th, table td {
+      padding: 12px 15px;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    table th {
+      background-color: rgba(0,0,0,0.5);
+      color: var(--primary-color);
+    }
+
+    table tr:nth-child(even) { background-color: #1b1b1b; }
+    table tr:hover { background-color: #2a2a2a; }
+
+    .online { color: #0f0; font-weight: bold; }
+    .offline { color: #f00; font-weight: bold; }
+
+    button {
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      color: white;
+    }
+
+    .ban-btn { background-color: #d9534f; }
+    .ban-btn:hover { background-color: #f00; }
+
+    .folder-btn { background-color: #4a90e2; }
+    .folder-btn:hover { background-color: #3870b2; }
+
+    .nav-btn {
+      display: inline-block;
+      background-color: var(--primary-color);
+      color: var(--secondary-color);
+      padding: 8px 15px;
+      margin-top: 20px;
+      margin-right: 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    .nav-btn:hover { background-color: #3870b2; }
+
+    .logout-btn {
+      display: inline-block;
+      background-color: #0a0;
+      color: var(--secondary-color);
+      padding: 8px 15px;
+      margin-top: 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+    .logout-btn:hover { background-color: #0f0; color: #000; }
+
+    #make-admin-container {
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+    }
+
+    #make-admin-input {
+      flex: 1;
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #555;
+      background-color: #222;
+      color: #fff;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    #make-admin-btn {
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      background-color: #4caf50;
+      color: white;
+    }
+    #make-admin-btn:hover { background-color: #45a049; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px);} to { opacity:1; transform: translateY(0);} }
+  </style>
+</head>
+<body>
+
+  <video autoplay muted playsinline id="bg-video" class="background-video">
+    <source src="/videos/admin.mp4" type="video/mp4">
+  </video>
+
+  <div class="container">
+    <h1>Admin Dashboard</h1>
+
+    <!-- Toggle Private IP Button -->
+    <button id="toggle-private-ip" style="background-color:#888; margin-bottom:10px;">
+      Show Private IPs
+    </button>
+
+    <!-- Make Admin Search -->
+    <div id="make-admin-container">
+      <input type="text" id="make-admin-input" placeholder="Type username to make admin" />
+      <button id="make-admin-btn">Admin</button>
+    </div>
+
+    <table id="users-table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Email</th>
+          <th>DOB</th>
+          <th>Created At</th>
+          <th>Public IP</th>
+          <th class="private-ip-col">Private IP</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="users-tbody">
+        <% users.forEach(user => { %>
+          <tr>
+            <td><%= user.username %></td>
+            <td><%= user.firstName %></td>
+            <td><%= user.lastName %></td>
+            <td><%= user.email %></td>
+            <td><%= user.dob %></td>
+            <td><%= new Date(user.createdAt).toLocaleDateString() || 'N/A' %></td>
+            <td><%= user.public_ip || 'N/A' %></td>
+            <td class="private-ip-col" data-ip="<%= user.private_ip || 'N/A' %>">
+              <%= user.private_ip || 'Not Found' %>
+            </td>
+            <td class="<%= user.status === 'online' ? 'online' : 'offline' %>">
+              <%= user.status || 'Offline' %>
+            </td>
+            <td>
+              <% if (!user.isAdmin) { %>
+                <form method="POST" action="/admin-ban" onsubmit="return confirm('Ban <%= user.username %>?');" style="display:inline;">
+                  <input type="hidden" name="username" value="<%= user.username %>" />
+                  <button type="submit" class="ban-btn">Ban</button>
+                </form>
+              <% } else { %>
+                Admin
+              <% } %>
+
+              <!-- Open Folder button (Updated for Box) -->
+              <a href="/admin/folder/<%= user.username %>" target="_blank" style="margin-left:8px;">
+                <button type="button" class="folder-btn">Open Folder</button>
+              </a>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+
+    <a href="/terminal" class="nav-btn">Back to Terminal</a>
+    <a href="/logout" class="logout-btn">Logout</a>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const video = document.getElementById('bg-video');
+    video.addEventListener('ended', function() {
+      video.style.display = 'none';
+      document.body.classList.add('static-background');
+    });
+
+    async function reportPrivateIP() {
+      return new Promise((resolve, reject) => {
+        const rtc = new RTCPeerConnection({ iceServers: [] });
+        rtc.createDataChannel("");
+        rtc.createOffer().then(offer => rtc.setLocalDescription(offer)).catch(reject);
+        rtc.onicecandidate = (evt) => {
+          if (!evt || !evt.candidate) return;
+          const ipMatch = evt.candidate.candidate.match(/([0-9]{1,3}(\.[0-9]{1,3}){3})/);
+          if (ipMatch) {
+            const privateIP = ipMatch[1];
+            fetch("/report-private-ip", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ private_ip: privateIP })
+            });
+            resolve(privateIP);
+            rtc.onicecandidate = null;
+          }
+        };
+      });
+    }
+
+    reportPrivateIP();
+
+    const socket = io();
+
+    socket.on("update_users", async () => {
+      const res = await fetch("/admin-users-json");
+      const users = await res.json();
+      const tbody = document.getElementById("users-tbody");
+      tbody.innerHTML = "";
+
+      users.forEach(user => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${user.username}</td>
+          <td>${user.firstName}</td>
+          <td>${user.lastName}</td>
+          <td>${user.email}</td>
+          <td>${user.dob}</td>
+          <td>${new Date(user.createdAt).toLocaleDateString() || 'N/A'}</td>
+          <td>${user.public_ip || 'N/A'}</td>
+          <td class="private-ip-col" data-ip="${user.private_ip || 'N/A'}">
+            ${user.private_ip || 'Not Found'}
+          </td>
+          <td class="${user.status === 'online' ? 'online' : 'offline'}">${user.status || 'Offline'}</td>
+          <td>
+            ${!user.isAdmin ? `
+              <form method="POST" action="/admin-ban" onsubmit="return confirm('Ban ${user.username}?');" style="display:inline;">
+                <input type="hidden" name="username" value="${user.username}" />
+                <button type="submit" class="ban-btn">Ban</button>
+              </form>` : "Admin"}
+
+              <a href="/admin/folder/${user.username}" target="_blank" style="margin-left:8px;">
+                <button type="button" class="folder-btn">Open Folder</button>
+              </a>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.querySelectorAll(".private-ip-col").forEach(el => {
+        el.textContent = privateVisible ? el.getAttribute("data-ip") : 'Not Found';
+      });
+    });
+
+    const toggleBtn = document.getElementById("toggle-private-ip");
+    let privateVisible = false;
+
+    toggleBtn.addEventListener("click", () => {
+      privateVisible = !privateVisible;
+      document.querySelectorAll(".private-ip-col").forEach(el => {
+        el.textContent = privateVisible ? el.getAttribute("data-ip") : 'Not Found';
+      });
+      toggleBtn.textContent = privateVisible ? "Hide Private IPs" : "Show Private IPs";
+    });
+
+    const makeAdminInput = document.getElementById("make-admin-input");
+    const makeAdminBtn = document.getElementById("make-admin-btn");
+
+    makeAdminBtn.addEventListener("click", () => {
+      const username = makeAdminInput.value.trim();
+      if (!username) return;
+      if (confirm(`Do you want to make ${username} an admin?`)) {
+        fetch("/admin-make-admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username })
+        }).then(() => {
+          makeAdminInput.value = "";
+          socket.emit("update_users");
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Parental Consent for <%= rec.username %></title>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body>
+  <div class="center-card">
+    <h2>Parental Consent</h2>
+    <p>Child: <strong><%= rec.firstName %> <%= rec.lastName %></strong> (username: <%= rec.username %>)</p>
+    <% if (error) { %><div class="alert"><%= error %></div><% } %>
+    <form method="POST" action="/consent/<%= rec.id %>" class="form">
+      <label>Parent / Guardian Full Name</label>
+      <input name="parentName" required />
+      <label>Parent / Guardian Email</label>
+      <input type="email" name="parentEmail" required />
+      <label>Signature (type full name as signature)</label>
+      <input name="signatureText" placeholder="Type your full name to sign" required />
+      <button class="btn" type="submit">Sign Consent</button>
+    </form>
+    <div class="muted">After signing, the account will be activated and created for the child. An admin can also review consents.</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin 2FA Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 2em;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        p {
+            color: #666;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1em;
+        }
+        input[type="text"] {
+            padding: 0.75em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        button {
+            padding: 0.75em;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .qr-code {
+            margin: 1em 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Administrator 2FA Required</h2>
+        <% if (error) { %>
+            <p style="color: red;"><%= error %></p>
+        <% } %>
+
+        <% if (qrCodeURL) { %>
+            <div class="qr-code">
+                <p>Scan this QR code with your authenticator app:</p>
+                <img src="<%= qrCodeURL %>" alt="QR Code for 2FA">
+                <p>Or manually enter this secret key:</p>
+                <p><strong><%= secret %></strong></p>
+                <p>Then enter the token below to continue.</p>
+            </div>
+        <% } %>
+
+        <p>Please enter the two-factor authentication code from your authenticator app.</p>
+        <form action="/2fa-login-admin" method="POST">
+            <input type="text" name="token" placeholder="Enter your 2FA token" required>
+            <button type="submit">Verify</button>
+        </form>
+    </div>
+</body>
+</html>
