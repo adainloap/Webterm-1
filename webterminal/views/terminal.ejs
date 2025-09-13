@@ -106,6 +106,7 @@
     #terminalContainer {
       width: 100%;
       height: 100%;
+      min-height: 500px; /* ensure it’s always visible */
       background-color: var(--terminal-bg);
       border-radius: 12px;
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
@@ -240,6 +241,8 @@
   <!-- Scripts -->
   <link rel="stylesheet" href="https://unpkg.com/xterm/css/xterm.css" />
   <script src="https://unpkg.com/xterm/lib/xterm.js"></script>
+  <script src="https://unpkg.com/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+  <script src="https://unpkg.com/xterm-addon-web-links/lib/xterm-addon-web-links.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
@@ -252,25 +255,27 @@
       });
     }
 
-    // Initialize terminal & socket
+    // Initialize terminal with addons
     const term = new window.Terminal({
-      cols: 80,
-      rows: 24,
       cursorBlink: true,
       theme: { background: 'transparent' },
       fontFamily: 'monospace'
     });
+    const fitAddon = new FitAddon.FitAddon();
+    const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+    term.loadAddon(fitAddon);
+    term.loadAddon(webLinksAddon);
+
     term.open(document.getElementById('terminalContainer'));
 
+    // Wire up socket
     term.onData(data => socket.emit('term_input', data));
     socket.on('term_output', data => term.write(data));
 
     // Fit terminal to container
     function fitTerminal() {
-      const container = document.getElementById('terminalContainer');
-      const cols = Math.floor(container.offsetWidth / 9);
-      const rows = Math.floor(container.offsetHeight / 17);
-      term.resize(cols, rows);
+      fitAddon.fit();
+      const { cols, rows } = term;
       socket.emit('resize', { cols, rows });
     }
     window.addEventListener('resize', fitTerminal);

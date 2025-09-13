@@ -1199,16 +1199,6 @@ app.post("/admin/verify-folder-pin/:username", (req, res) => {
   }
 });
 
-// ===========================================
-// Terminal Page Route
-// ===========================================
-app.get("/terminal", (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/login");
-  }
-
-  res.render("terminal", { user: req.session.user });
-});
 
 // ====================
 // Terminal & Chat Logic (Unified)
