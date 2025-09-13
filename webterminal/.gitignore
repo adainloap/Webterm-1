@@ -1,1 +1,51 @@
+# ======================
+# Node.js
+# ======================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnpm-debug.log
+
+# Build outputs
+dist/
+build/
+out/
+.cache/
+.tmp/
+
+# Environment variables
 .env
+.env.local
+.env.*.local
+
+# ======================
+# Gradle (removed setup)
+# ======================
+gradlew
+gradlew.bat
+gradle/
+.gradle/
+build.gradle
+settings.gradle
+build.gradle.kts
+settings.gradle.kts
+
+# ======================
+# IDEs & Editors
+# ======================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*.log
+
+# ======================
+# OS generated files
+# ======================
+.DS_Store
+Thumbs.db
