@@ -14,6 +14,7 @@ import { dirname, join } from "path";
 import fs from "fs";
 import http from "http";
 import { Server } from "socket.io";
+import { Server as SocketIO } from 'socket.io';
 import pty from "node-pty";
 import { db, findUser, setPublicIP, setPrivateIP, setAdmin, initializeDb } from "./db.js";
 import { setOnline, setOffline, isOnline, getOnlineUsers } from "./userStatus.js";
@@ -1198,11 +1199,19 @@ app.post("/admin/verify-folder-pin/:username", (req, res) => {
     res.render("verify-pin", { username: username, error: "Invalid PIN. Please try again." });
   }
 });
-
-
 // ====================
 // Terminal & Chat Logic (Unified)
 // ====================
+app.get('/terminal', (req, res) => {
+  if (!req.session?.user) {
+    return res.redirect('/login');
+  }
+  // ✅ Pass user object to EJS so terminal.ejs doesn't break
+  res.render('terminal', { user: req.session.user });
+});
+
+// ✅ Removed the stray req.session.save(...) here — it belongs in your login route after setting req.session.user
+
 const workspaceRoot = join(__dirname, "workspaces");
 if (!fs.existsSync(workspaceRoot)) fs.mkdirSync(workspaceRoot, { recursive: true });
 
@@ -1250,6 +1259,17 @@ io.on("connection", (socket) => {
 });
 
 
+// ====================
+// Terminal & Chat Logic (Unified) — moved inside startServer()
+// ====================
+
+app.get('/terminal', (req, res) => {
+  if (!req.session?.user) {
+    return res.redirect('/login');
+  }
+  res.render('terminal', { user: req.session.user }); // ✅ Pass user to EJS
+});
+
 // --- Terms of Service ---
 app.get("/tos", (req, res) => {
   res.render("tos");
@@ -1271,8 +1291,9 @@ const startServer = async () => {
   try {
     await initializeDb();
 
-    // Default to 443 unless overridden
     const PORT = process.env.PORT || 443;
+    const workspaceRoot = join(__dirname, "workspaces");
+    if (!fs.existsSync(workspaceRoot)) fs.mkdirSync(workspaceRoot, { recursive: true });
 
     if (process.env.SSL_PRIVATE_KEY && process.env.SSL_CERTIFICATE) {
       // HTTPS mode
@@ -1282,11 +1303,56 @@ const startServer = async () => {
       };
 
       const httpsServer = https.createServer(sslOptions, app);
+      const io = new SocketIO(httpsServer);
+
+      // Share session with Socket.IO
+      io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
+
+      // Terminal & Chat logic bound to this io instance
+      io.on("connection", (socket) => {
+        const sess = socket.request.session;
+        if (!sess?.user) return socket.disconnect(true);
+
+        const username = sess.user.username;
+        console.log(`✅ User ${username} connected to terminal`);
+
+        // Ensure user workspace exists
+        const wsDir = join(workspaceRoot, username);
+        if (!fs.existsSync(wsDir)) fs.mkdirSync(wsDir, { recursive: true });
+
+        // Spawn shell inside user workspace
+        const shell = process.env.SHELL || (process.platform === "win32" ? "powershell.exe" : "bash");
+        const ptyProcess = pty.spawn(shell, [], {
+          cwd: wsDir,
+          env: process.env,
+          cols: 80,
+          rows: 24,
+          name: "xterm-color"
+        });
+
+        // Handle terminal output/input
+        ptyProcess.on("data", (data) => socket.emit("term_output", data));
+        socket.on("term_input", (data) => ptyProcess.write(data));
+        socket.on("resize", ({ cols, rows }) => {
+          try { ptyProcess.resize(cols, rows); } catch (err) { console.error("Resize error:", err); }
+        });
+
+        // Handle chat messages
+        socket.on("chat_message", (message) => {
+          io.emit("chat_message", { username: sess.user.username, message });
+        });
+
+        // Disconnect cleanup
+        socket.on("disconnect", () => {
+          try { ptyProcess.kill(); } catch {}
+          console.log(`❌ User ${username} disconnected`);
+          io.emit("user_update", { username, status: "offline" });
+        });
+      });
 
       httpsServer.listen(PORT, "0.0.0.0", async () => {
         const privateIP = getPrivateIP();
         const publicIP = await getPublicIP();
-
         console.log(`✅ HTTPS server running on port ${PORT}`);
         console.log(`   Private URL: https://${privateIP}:${PORT}`);
         console.log(`   Public URL:  https://${publicIP}:${PORT}`);
@@ -1299,12 +1365,60 @@ const startServer = async () => {
           process.exit(0);
         });
       });
+
     } else {
       // HTTP fallback
-      const httpServer = app.listen(PORT, "0.0.0.0", async () => {
+      const httpServer = http.createServer(app);
+      const io = new SocketIO(httpServer);
+
+      // Share session with Socket.IO
+      io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
+
+      // Terminal & Chat logic bound to this io instance
+      io.on("connection", (socket) => {
+        const sess = socket.request.session;
+        if (!sess?.user) return socket.disconnect(true);
+
+        const username = sess.user.username;
+        console.log(`✅ User ${username} connected to terminal`);
+
+        // Ensure user workspace exists
+        const wsDir = join(workspaceRoot, username);
+        if (!fs.existsSync(wsDir)) fs.mkdirSync(wsDir, { recursive: true });
+
+        // Spawn shell inside user workspace
+        const shell = process.env.SHELL || (process.platform === "win32" ? "powershell.exe" : "bash");
+        const ptyProcess = pty.spawn(shell, [], {
+          cwd: wsDir,
+          env: process.env,
+          cols: 80,
+          rows: 24,
+          name: "xterm-color"
+        });
+
+        // Handle terminal output/input
+        ptyProcess.on("data", (data) => socket.emit("term_output", data));
+        socket.on("term_input", (data) => ptyProcess.write(data));
+        socket.on("resize", ({ cols, rows }) => {
+          try { ptyProcess.resize(cols, rows); } catch (err) { console.error("Resize error:", err); }
+        });
+
+        // Handle chat messages
+        socket.on("chat_message", (message) => {
+          io.emit("chat_message", { username: sess.user.username, message });
+        });
+
+        // Disconnect cleanup
+        socket.on("disconnect", () => {
+          try { ptyProcess.kill(); } catch {}
+          console.log(`❌ User ${username} disconnected`);
+          io.emit("user_update", { username, status: "offline" });
+        });
+      });
+
+      httpServer.listen(PORT, "0.0.0.0", async () => {
         const privateIP = getPrivateIP();
         const publicIP = await getPublicIP();
-
         console.log(`✅ HTTP server running on port ${PORT}`);
         console.log(`   Private URL: http://${privateIP}:${PORT}`);
         console.log(`   Public URL:  http://${publicIP}:${PORT}`);

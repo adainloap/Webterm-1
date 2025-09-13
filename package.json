@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "connect-redis": "^9.0.0",
+    "dotenv": "^17.2.2",
+    "dropbox": "^10.34.0",
+    "ioredis": "^5.7.0",
+    "public-ip": "^7.0.1"
+  }
+}

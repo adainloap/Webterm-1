@@ -1,0 +1,17 @@
+
+[
+  {
+    "username": "user1",
+    "password": "$2a$10$7qHfJxVj6ysfg27DWh6sCuUgVkcfPbAyRI5ATtP2Fd3HGZj1T7k7q", 
+    "email": "user1@example.com",
+    "dob": "2000-01-01",
+    "ip": "127.0.0.1"
+  },
+  {
+    "username": "user2",
+    "password": "$2a$10$CsHk54Ppt4q/6iOZ7siyV7ksz9fr8tmTXkb0G5c8tBeMvDae3EX4q",
+    "email": "user2@example.com",
+    "dob": "1995-05-25",
+    "ip": "127.0.0.1"
+  }
+]
