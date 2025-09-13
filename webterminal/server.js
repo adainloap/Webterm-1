@@ -34,7 +34,7 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
-
+import path from "path";
 // ==========================
 // Resolve __dirname for ES
 // ==========================
@@ -44,6 +44,7 @@ const __dirname = dirname(__filename);
 // App & Socket setup
 // ====================
 const app = express();
+app.use(express.static(path.join(__dirname, "public")));
 const server = http.createServer(app);
 const io = new Server(server);
 

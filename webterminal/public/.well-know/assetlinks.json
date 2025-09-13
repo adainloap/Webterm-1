@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.onrender.webterm_6e21.twa",
+    "sha256_cert_fingerprints": [
+      "F4:E8:76:84:E5:B0:C7:D9:23:D8:6C:17:35:2E:85:91:0C:D8:C1:AD:A1:F4:CF:99:40:9F:18:C9:F2:29:A5:FD"
+    ]
+  }
+}]
