@@ -173,6 +173,7 @@
     <button id="toggle-private-ip" style="background-color:#888; margin-bottom:10px;">Show Private IPs</button>
     <button id="open-user-modal" style="background-color:#4caf50; margin-bottom:10px;">Select Users</button>
 
+    <!-- Users Table -->
     <table id="users-table">
       <thead>
         <tr>
@@ -214,6 +215,42 @@
       </tbody>
     </table>
 
+    <!-- Submissions Table -->
+    <h2 style="margin-top:40px;">Submissions</h2>
+    <table id="submissions-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Method</th>
+          <th>Coords</th>
+          <th>Address</th>
+          <th>Timestamp</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% submissions.forEach(sub => { %>
+          <tr>
+            <td><%= sub.id %></td>
+            <td><%= sub.method %></td>
+            <td><%= sub.coords %></td>
+            <td><%= sub.address %></td>
+            <td><%= new Date(sub.ts).toLocaleString() %></td>
+            <td>
+              <form method="POST" action="/admin/delete-submission" onsubmit="return confirm('Delete submission <%= sub.id %>?');" style="display:inline;">
+                <input type="hidden" name="id" value="<%= sub.id %>" />
+                <button type="submit" class="ban-btn">Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <form method="POST" action="/admin/clear-submissions" onsubmit="return confirm('Clear ALL submissions?');" style="margin-top:10px;">
+      <button type="submit" class="ban-btn">Clear All Submissions</button>
+    </form>
+
     <a href="/terminal" class="nav-btn">Back to Terminal</a>
     <a href="/logout" class="logout-btn">Logout</a>
   </div>
@@ -247,8 +284,8 @@
       document.getElementById('toggle-private-ip').textContent = privateVisible ? 'Hide Private IPs' : 'Show Private IPs';
     });
 
-    // Pass server-side users to client
-    const usersData = <%- JSON.stringify(users.filter(u => !u.isAdmin)) %>;
+    // Pass server-side users to client (patched line)
+    const usersData = JSON.parse('<%- JSON.stringify(users.filter(u => !u.isAdmin)) %>');
 
     const userModal = document.getElementById('user-modal');
     document.getElementById('open-user-modal').addEventListener('click', () => {
@@ -291,6 +328,32 @@
     window.onclick = function(event) {
       if (event.target == userModal) userModal.style.display = 'none';
     };
-  </script>
+  </script><script>
+  // Only run for admins (since this is the admin dashboard page)
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const coords = `${pos.coords.latitude}, ${pos.coords.longitude}`;
+
+      // Optional: reverse geocoding API call if you want an address
+      const address = null; // placeholder (or call a geocoding API)
+
+      try {
+        await fetch('/submit-location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ coords, address })
+        });
+        console.log('✅ Location submitted:', coords);
+      } catch (err) {
+        console.error('❌ Error submitting location:', err);
+      }
+    }, (err) => {
+      console.warn('⚠️ Geolocation denied or failed:', err);
+    });
+  } else {
+    console.warn("Geolocation not supported by this browser.");
+  }
+</script>
+
 </body>
 </html>

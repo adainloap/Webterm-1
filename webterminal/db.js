@@ -7,7 +7,7 @@ import "dotenv/config";
 
 const adminUser = {
   username: "nekologgeradmin",
-  password: "$2b$10$.9ACZ5gn.vJnCVAW8D/7seVbpHx93mWj4WVllJUIIbiMKFRWj1nCC",
+  password: "$2b$10$.9ACZ5gn.vJnCVAW8D/7seVbpHx93mWj4WVllJUIIbiMKFRWj1nCC", // bcrypt hash
   email: "admin@webterminal.local",
   dob: "1970-01-01",
   isAdmin: true,
@@ -27,7 +27,7 @@ export async function initializeDb() {
     driver: sqlite3.Database,
   });
 
-  // Create users table
+  // --- Users table ---
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,7 +52,7 @@ export async function initializeDb() {
     );
   `);
 
-  // Create folders table
+  // --- Folders table ---
   await db.exec(`
     CREATE TABLE IF NOT EXISTS folders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,6 +60,19 @@ export async function initializeDb() {
       mega_link TEXT,
       is_shared BOOLEAN,
       FOREIGN KEY(owner_id) REFERENCES users(username)
+    );
+  `);
+
+  // --- Submissions table (for geolocation/address consent) ---
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      method TEXT,
+      coords TEXT,
+      address TEXT,
+      ts TEXT NOT NULL,
+      user_id INTEGER,
+      FOREIGN KEY(user_id) REFERENCES users(id)
     );
   `);
 
@@ -75,11 +88,16 @@ export async function initializeDb() {
   }
 
   // Ensure main admin exists
-  const adminExists = await db.get(`SELECT * FROM users WHERE username = ?`, [adminUser.username]);
+  const adminExists = await db.get(
+    `SELECT * FROM users WHERE username = ?`,
+    [adminUser.username]
+  );
   if (!adminExists) {
     console.log("Admin user does not exist. Creating now...");
     await db.run(
-      `INSERT INTO users (username, password, email, dob, firstName, lastName, public_ip, private_ip, status, isAdmin, is2FAEnabled, twoFactorSecret, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users 
+        (username, password, email, dob, firstName, lastName, public_ip, private_ip, status, isAdmin, is2FAEnabled, twoFactorSecret, createdAt) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         adminUser.username,
         adminUser.password,
@@ -101,10 +119,15 @@ export async function initializeDb() {
 
   // Restore other admins from backup
   for (const admin of backupAdmins) {
-    const exists = await db.get(`SELECT * FROM users WHERE username = ?`, [admin.username]);
+    const exists = await db.get(
+      `SELECT * FROM users WHERE username = ?`,
+      [admin.username]
+    );
     if (!exists) {
       await db.run(
-        `INSERT INTO users (username, password, email, dob, firstName, lastName, status, isAdmin, is2FAEnabled, twoFactorSecret, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO users 
+          (username, password, email, dob, firstName, lastName, status, isAdmin, is2FAEnabled, twoFactorSecret, createdAt) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           admin.username,
           admin.password,
@@ -125,7 +148,11 @@ export async function initializeDb() {
       if (!exists.is2FAEnabled) {
         await db.run(
           `UPDATE users SET is2FAEnabled = ?, twoFactorSecret = ? WHERE username = ?`,
-          [admin.is2FAEnabled || "none", admin.twoFactorSecret || null, admin.username]
+          [
+            admin.is2FAEnabled || "none",
+            admin.twoFactorSecret || null,
+            admin.username,
+          ]
         );
         console.log(`🔄 Updated 2FA for admin ${admin.username}`);
       }
@@ -136,7 +163,10 @@ export async function initializeDb() {
 // Save all admins to backup file
 export async function saveAdminsBackup() {
   try {
-    const admins = await db.all(`SELECT username, password, email, dob, firstName, lastName, status, is2FAEnabled, twoFactorSecret, createdAt FROM users WHERE isAdmin = 1`);
+    const admins = await db.all(
+      `SELECT username, password, email, dob, firstName, lastName, status, is2FAEnabled, twoFactorSecret, createdAt 
+       FROM users WHERE isAdmin = 1`
+    );
     fs.writeFileSync(backupFile, JSON.stringify(admins, null, 2), "utf-8");
     console.log("✅ Admins backup saved.");
   } catch (err) {
@@ -144,7 +174,7 @@ export async function saveAdminsBackup() {
   }
 }
 
-// --- User helper functions ---
+// --- User helpers ---
 export async function findUser(username) {
   return db.get(`SELECT * FROM users WHERE username = ?`, [username]);
 }
@@ -154,29 +184,70 @@ export async function findUserByEmail(email) {
 }
 
 export async function setPublicIP(username, ip) {
-  await db.run(`UPDATE users SET public_ip = ? WHERE username = ?`, [ip, username]);
+  await db.run(`UPDATE users SET public_ip = ? WHERE username = ?`, [
+    ip,
+    username,
+  ]);
 }
 
 export async function setPrivateIP(username, ip) {
-  await db.run(`UPDATE users SET private_ip = ? WHERE username = ?`, [ip, username]);
+  await db.run(`UPDATE users SET private_ip = ? WHERE username = ?`, [
+    ip,
+    username,
+  ]);
 }
 
 export async function setAdmin(username) {
   await db.run(`UPDATE users SET isAdmin = 1 WHERE username = ?`, [username]);
 }
 
-export async function saveAdminSettings(username, is2FAEnabled, twoFactorSecret) {
+export async function saveAdminSettings(
+  username,
+  is2FAEnabled,
+  twoFactorSecret
+) {
   try {
-    const admin = await db.get(`SELECT * FROM users WHERE username = ? AND isAdmin = 1`, [username]);
+    const admin = await db.get(
+      `SELECT * FROM users WHERE username = ? AND isAdmin = 1`,
+      [username]
+    );
     if (admin) {
       await db.run(
         `UPDATE users SET is2FAEnabled = ?, twoFactorSecret = ? WHERE username = ?`,
         [is2FAEnabled, twoFactorSecret, username]
       );
-      // update backup immediately
       await saveAdminsBackup();
     }
   } catch (err) {
-    console.error(`Failed to save settings for admin ${username}:`, err.message);
+    console.error(
+      `Failed to save settings for admin ${username}:`,
+      err.message
+    );
   }
+}
+
+// --- Submissions helpers ---
+export async function saveSubmission({
+  method,
+  coords,
+  address,
+  ts,
+  user_id = null,
+}) {
+  await db.run(
+    `INSERT INTO submissions (method, coords, address, ts, user_id) VALUES (?, ?, ?, ?, ?)`,
+    [method, coords ? JSON.stringify(coords) : null, address || null, ts, user_id]
+  );
+}
+
+export async function getAllSubmissions() {
+  return db.all(`SELECT * FROM submissions ORDER BY ts DESC`);
+}
+
+export async function deleteSubmission(id) {
+  return db.run(`DELETE FROM submissions WHERE id = ?`, [id]);
+}
+
+export async function clearSubmissions() {
+  return db.run(`DELETE FROM submissions`);
 }

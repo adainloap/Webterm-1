@@ -620,6 +620,34 @@
         window.registerWithGoogle = registerWithGoogle;
         window.registerWithApple = registerWithApple;
         window.registerWithFacebook = registerWithFacebook;
-    </script>
+    </script><script>
+    // Show parent email if user is under 13
+    const dobDay = document.getElementById("dob-day");
+    const dobMonth = document.getElementById("dob-month");
+    const dobYear = document.getElementById("dob-year");
+    const parentEmailGroup = document.getElementById("parentEmailGroup");
+
+    function checkAge() {
+        const year = parseInt(dobYear.value, 10);
+        const month = parseInt(dobMonth.value, 10) - 1;
+        const day = parseInt(dobDay.value, 10);
+        if (!year || !month || !day) {
+            parentEmailGroup.style.display = "none";
+            return;
+        }
+
+        const dob = new Date(year, month, day);
+        const today = new Date();
+        const age = today.getFullYear() - dob.getFullYear();
+        const hasBirthdayPassed = 
+            today.getMonth() > dob.getMonth() || 
+            (today.getMonth() === dob.getMonth() && today.getDate() >= dob.getDate());
+
+        const realAge = hasBirthdayPassed ? age : age - 1;
+        parentEmailGroup.style.display = realAge < 13 ? "block" : "none";
+    }
+
+    [dobDay, dobMonth, dobYear].forEach(el => el.addEventListener("change", checkAge));
+</script>
 </body>
 </html>

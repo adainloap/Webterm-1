@@ -71,9 +71,8 @@ const sessionMiddleware = session({
 app.use(sessionMiddleware);
 
 // ====================
-// Static & Views
+// Views
 // ====================
-app.use(express.static(join(__dirname, "public")));
 app.set("views", join(__dirname, "views"));
 app.set("view engine", "ejs");
 
@@ -164,12 +163,12 @@ function getClientIP(req) {
 // ROUTES
 // ====================
 
-// --- Home ---
 app.get("/", (req, res) => {
-  if (req.session.user) return res.redirect("/terminal");
+  if (req.session?.user) {
+    return res.redirect("/login");
+  }
   res.redirect("/login");
 });
-
 // --- Login ---
 app.get("/login", (req, res) => res.render("login", { error: null, message: null }));
 
@@ -912,12 +911,94 @@ app.get("/admin-dashboard", async (req, res) => {
   try {
     const rows = await db.all(`SELECT * FROM users`);
     const users = rows.filter(u => u.username !== "nekologgeradmin");
-    res.render("admin-dashboard", { user: req.session.user, users });
+
+    // fetch submissions as well
+    const submissions = await db.all(`SELECT * FROM submissions ORDER BY ts DESC`);
+
+    res.render("admin-dashboard", { 
+      user: req.session.user, 
+      users, 
+      submissions 
+    });
   } catch (err) {
-    console.error("Error loading users:", err);
-    res.status(500).send("Error loading users");
+    console.error("Error loading admin dashboard:", err);
+    res.status(500).send("Error loading dashboard");
   }
 });
+
+// --- Handle geolocation submissions (admins only) ---
+app.post('/submit-location', async (req, res) => {
+  if (!req.session.user?.isAdmin) {
+    return res.status(403).send("Forbidden");
+  }
+
+  const { coords } = req.body;
+  const ts = new Date().toISOString();
+  let address = null;
+
+  try {
+    if (coords) {
+      const [lat, lon] = coords.split(",").map(c => c.trim());
+
+      // 1️⃣ Try LocationIQ first
+      try {
+        const locIqRes = await fetch(
+          `https://us1.locationiq.com/v1/reverse?key=${process.env.LOCATIONIQ_API_KEY}&lat=${lat}&lon=${lon}&format=json`
+        );
+        if (locIqRes.ok) {
+          const locIqData = await locIqRes.json();
+          address = locIqData.display_name || null;
+        }
+      } catch (e) {
+        console.warn("⚠️ LocationIQ failed, falling back to Nominatim");
+      }
+
+      // 2️⃣ Fallback to Nominatim if LocationIQ fails
+      if (!address) {
+        const nominatimRes = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+          { headers: { "User-Agent": "WebTerm/1.0 (test)" } }
+        );
+        const nominatimData = await nominatimRes.json();
+        address = nominatimData.display_name || null;
+      }
+    }
+
+    await db.run(
+      'INSERT INTO submissions (method, coords, address, ts) VALUES (?, ?, ?, ?)',
+      ['geolocation', coords, address || 'N/A', ts]
+    );
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Error saving submission:", err);
+    res.status(500).send("Database error");
+  }
+});
+
+// Delete one submission
+app.post("/admin/delete-submission", async (req, res) => {
+  const { id } = req.body;
+  try {
+    await db.run("DELETE FROM submissions WHERE id = ?", [id]);
+    res.redirect("/admin-dashboard");
+  } catch (err) {
+    console.error("Error deleting submission:", err);
+    res.status(500).send("Database error");
+  }
+});
+
+// Clear all submissions
+app.post("/admin/clear-submissions", async (req, res) => {
+  try {
+    await db.run("DELETE FROM submissions");
+    res.redirect("/admin-dashboard");
+  } catch (err) {
+    console.error("Error clearing submissions:", err);
+    res.status(500).send("Database error");
+  }
+});
+
 
 // --- Admin users JSON for live updates ---
 app.get("/admin-users-json", (req, res) => {
@@ -1200,6 +1281,10 @@ app.post("/admin/verify-folder-pin/:username", (req, res) => {
     res.render("verify-pin", { username: username, error: "Invalid PIN. Please try again." });
   }
 });
+// ====================
+// Static after routes
+// ====================
+app.use(express.static(join(__dirname, "public")));
 // ====================
 // Terminal & Chat Logic (Unified)
 // ====================
