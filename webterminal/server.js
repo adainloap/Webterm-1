@@ -1127,44 +1127,49 @@ app.post("/reset-password", (req, res) => {
     });
   });
 });
+// --- Social login ---
 app.post("/api/social-login", async (req, res) => {
   const { uid, email, displayName } = req.body;
-  if (!uid) return res.status(400).json({ success: false, message: "Invalid data" }); 
-  // 👆 changed: only require uid, not email
+  if (!uid) return res.status(400).json({ success: false, message: "Invalid data" });
 
   try {
-    let user;
-
-    if (email) {
-      // Try lookup by email if provided
-      user = await db.get(`SELECT * FROM users WHERE email = ?`, [email]);
-    } else {
-      // Fallback to lookup by uid if no email (GitHub sometimes hides it)
-      user = await db.get(`SELECT * FROM users WHERE uid = ?`, [uid]);
-    }
+    // Always check by uid first
+    let user = await db.get(`SELECT * FROM users WHERE uid = ?`, [uid]);
 
     if (!user) {
-      // Create new user in DB
+      // New social login user
       const now = new Date().toISOString();
-      const safeDisplayName = displayName || "User";  // fallback name
-      let username = safeDisplayName.replace(/\s+/g, "") + Math.floor(Math.random() * 1000);
+      let baseName = displayName?.replace(/\s+/g, "") || "User";
+      let username = baseName;
 
-      // Ensure username is unique (retry if taken)
+      // Ensure username is unique
       let exists = await db.get(`SELECT * FROM users WHERE username = ?`, [username]);
       while (exists) {
-        username = safeDisplayName.replace(/\s+/g, "") + Math.floor(Math.random() * 1000);
+        username = baseName + Math.floor(Math.random() * 1000);
         exists = await db.get(`SELECT * FROM users WHERE username = ?`, [username]);
       }
 
       await db.run(
         `INSERT INTO users (username, email, uid, status, createdAt) VALUES (?, ?, ?, 'active', ?)`,
-        [username, email || null, uid, now] // 👈 allow null email
+        [username, email || null, uid, now]
       );
 
       user = await db.get(`SELECT * FROM users WHERE uid = ?`, [uid]);
+      console.log(`✅ Created new social login user: ${username}`);
+    } else {
+      // Update user info in case displayName/email changed
+      await db.run(
+        `UPDATE users SET username = ?, email = ? WHERE uid = ?`,
+        [
+          displayName?.replace(/\s+/g, "") || user.username,
+          email || user.email,
+          uid
+        ]
+      );
+      user = await db.get(`SELECT * FROM users WHERE uid = ?`, [uid]);
     }
 
-    // Set session
+    // Save session
     req.session.user = {
       username: user.username,
       email: user.email,
@@ -1175,10 +1180,11 @@ app.post("/api/social-login", async (req, res) => {
 
     res.json({ success: true, message: "Logged in via social account" });
   } catch (err) {
-    console.error("Social login error:", err);
+    console.error("❌ Social login error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
 // --- Make user admin ---
 app.post("/admin-make-admin", async (req, res) => {
   try {
