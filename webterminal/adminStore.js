@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const adminFile = path.join(__dirname, "admin.json");
-
+// filler lines
 // Load admin config
 export function getAdminConfig() {
   if (!fs.existsSync(adminFile)) {

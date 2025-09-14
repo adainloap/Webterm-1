@@ -49,3 +49,4 @@ settings.gradle.kts
 # ======================
 .DS_Store
 Thumbs.db
+node_modules/
