@@ -15,6 +15,7 @@ const adminUser = {
   public_ip: null,
   private_ip: null,
   status: "offline",
+  uid: "local-admin", // fallback UID for the hardcoded admin
 };
 
 export let db;
@@ -31,8 +32,9 @@ export async function initializeDb() {
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uid TEXT UNIQUE,                -- Firebase UID (can be null for legacy accounts)
       username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
+      password TEXT,
       email TEXT UNIQUE NOT NULL,
       dob TEXT,
       firstName TEXT,
@@ -63,7 +65,7 @@ export async function initializeDb() {
     );
   `);
 
-  // --- Submissions table (for geolocation/address consent) ---
+  // --- Submissions table ---
   await db.exec(`
     CREATE TABLE IF NOT EXISTS submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,6 +77,18 @@ export async function initializeDb() {
       FOREIGN KEY(user_id) REFERENCES users(id)
     );
   `);
+
+  // 🔄 Ensure uid column exists (for migrations on old DBs)
+  try {
+    const columns = await db.all(`PRAGMA table_info(users)`);
+    const hasUid = columns.some((col) => col.name === "uid");
+    if (!hasUid) {
+      await db.exec(`ALTER TABLE users ADD COLUMN uid TEXT UNIQUE`);
+      console.log("🔄 Added uid column to users table");
+    }
+  } catch (err) {
+    console.error("Failed to check/add uid column:", err.message);
+  }
 
   // Restore admins from backup if exists
   let backupAdmins = [];
@@ -96,9 +110,10 @@ export async function initializeDb() {
     console.log("Admin user does not exist. Creating now...");
     await db.run(
       `INSERT INTO users 
-        (username, password, email, dob, firstName, lastName, public_ip, private_ip, status, isAdmin, is2FAEnabled, twoFactorSecret, createdAt) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (uid, username, password, email, dob, firstName, lastName, public_ip, private_ip, status, isAdmin, is2FAEnabled, twoFactorSecret, createdAt) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
+        adminUser.uid,
         adminUser.username,
         adminUser.password,
         adminUser.email,
@@ -126,9 +141,10 @@ export async function initializeDb() {
     if (!exists) {
       await db.run(
         `INSERT INTO users 
-          (username, password, email, dob, firstName, lastName, status, isAdmin, is2FAEnabled, twoFactorSecret, createdAt) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (uid, username, password, email, dob, firstName, lastName, status, isAdmin, is2FAEnabled, twoFactorSecret, createdAt) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
+          admin.uid || null,
           admin.username,
           admin.password,
           admin.email,
@@ -164,7 +180,7 @@ export async function initializeDb() {
 export async function saveAdminsBackup() {
   try {
     const admins = await db.all(
-      `SELECT username, password, email, dob, firstName, lastName, status, is2FAEnabled, twoFactorSecret, createdAt 
+      `SELECT username, password, email, dob, firstName, lastName, status, is2FAEnabled, twoFactorSecret, createdAt, uid 
        FROM users WHERE isAdmin = 1`
     );
     fs.writeFileSync(backupFile, JSON.stringify(admins, null, 2), "utf-8");
@@ -181,6 +197,10 @@ export async function findUser(username) {
 
 export async function findUserByEmail(email) {
   return db.get(`SELECT * FROM users WHERE email = ?`, [email]);
+}
+
+export async function findUserByUid(uid) {
+  return db.get(`SELECT * FROM users WHERE uid = ?`, [uid]);
 }
 
 export async function setPublicIP(username, ip) {
