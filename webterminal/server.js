@@ -1431,8 +1431,7 @@ const startServer = async () => {
 
     // ✅ Start server
     httpServer.listen(PORT, "0.0.0.0", () => {
-      console.log(`✅ Server running on port ${PORT}`);
-      console.log(`   Open at: https://${process.env.CODESPACE_NAME}-${PORT}.app.github.dev/login`);
+      console.log(`✅ Server running on port ${PORT}`);;
     });
 
     // Graceful shutdown

@@ -9,6 +9,8 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
     "@dataconnect/generated": "file:src/dataconnect-generated",
     "@simplewebauthn/server": "^13.1.2",
     "apt": "^0.0.2",
