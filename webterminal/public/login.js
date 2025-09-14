@@ -1,6 +1,11 @@
 // login.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
-import { getAuth, GithubAuthProvider, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-auth.js";
+import { 
+  getAuth, 
+  GithubAuthProvider, 
+  GoogleAuthProvider, 
+  signInWithPopup 
+} from "https://www.gstatic.com/firebasejs/10.3.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDz30MLY_ffYF6QZbigcbNFCl-MuiCtFXw",
@@ -17,22 +22,35 @@ const auth = getAuth(app);
 const githubProvider = new GithubAuthProvider();
 const googleProvider = new GoogleAuthProvider();
 
+// ============================
 // GitHub login
+// ============================
 export async function loginWithGitHub() {
   try {
     const result = await signInWithPopup(auth, githubProvider);
-    const user = result.user;
 
-    // Some GitHub accounts hide email → fallback to uid
-    const email = user.email || null; // 👈 safe fallback
+    // Get OAuth credential
+    const credential = GithubAuthProvider.credentialFromResult(result);
+    const token = credential.accessToken;
 
+    // Fetch GitHub profile
+    const ghRes = await fetch("https://api.github.com/user", {
+      headers: { Authorization: `token ${token}` }
+    });
+    const ghProfile = await ghRes.json();
+
+    // Extract values
+    const email = ghProfile.email || result.user.email || null;
+    const username = ghProfile.login || result.user.displayName || "GitHubUser";
+
+    // Send to backend
     const response = await fetch("/api/social-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        uid: user.uid,
-        email: email,                   // 👈 send null if missing
-        displayName: user.displayName || "GitHubUser" // 👈 fallback name
+        uid: ghProfile.id,   // GitHub numeric ID
+        email: email,
+        displayName: username
       })
     });
 
@@ -49,7 +67,9 @@ export async function loginWithGitHub() {
   }
 }
 
+// ============================
 // Google login
+// ============================
 export async function loginWithGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -60,8 +80,8 @@ export async function loginWithGoogle() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         uid: user.uid,
-        email: user.email || null,             // 👈 safe fallback
-        displayName: user.displayName || "GoogleUser" // 👈 fallback
+        email: user.email || null,
+        displayName: user.displayName || "GoogleUser"
       })
     });
 
