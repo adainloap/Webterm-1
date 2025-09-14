@@ -44,6 +44,7 @@ const __dirname = dirname(__filename);
 // App & Socket setup
 // ====================
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.static(path.join(__dirname, "public")));
 const server = http.createServer(app);
 const io = new Server(server);
@@ -162,10 +163,9 @@ function getClientIP(req) {
 // ====================
 // ROUTES
 // ====================
-
 app.get("/", (req, res) => {
   if (req.session?.user) {
-    return res.redirect("/login");
+    return res.redirect("/terminal");
   }
   res.redirect("/login");
 });
@@ -1368,7 +1368,6 @@ app.get("/privacy", (req, res) => {
 app.get("/cookies", (req, res) => {
   res.render("cookies");
 });
-
 // ====================
 // START SERVER SECTION
 // ====================
@@ -1377,7 +1376,7 @@ const startServer = async () => {
   try {
     await initializeDb();
 
-    const PORT = process.env.PORT || 3000;
+    const PORT = process.env.PORT || 3000;   // ✅ only define this once
     const workspaceRoot = join(__dirname, "workspaces");
     if (!fs.existsSync(workspaceRoot)) fs.mkdirSync(workspaceRoot, { recursive: true });
 
@@ -1388,7 +1387,7 @@ const startServer = async () => {
     // Share session with Socket.IO
     io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
 
-    // Terminal & Chat logic bound to this io instance
+    // Terminal & Chat logic
     io.on("connection", (socket) => {
       const sess = socket.request.session;
       if (!sess?.user) return socket.disconnect(true);
@@ -1417,12 +1416,12 @@ const startServer = async () => {
         try { ptyProcess.resize(cols, rows); } catch (err) { console.error("Resize error:", err); }
       });
 
-      // Handle chat messages
+      // Chat
       socket.on("chat_message", (message) => {
         io.emit("chat_message", { username: sess.user.username, message });
       });
 
-      // Disconnect cleanup
+      // Disconnect
       socket.on("disconnect", () => {
         try { ptyProcess.kill(); } catch {}
         console.log(`❌ User ${username} disconnected`);
@@ -1430,10 +1429,10 @@ const startServer = async () => {
       });
     });
 
-    // Start server
+    // ✅ Start server
     httpServer.listen(PORT, "0.0.0.0", () => {
       console.log(`✅ Server running on port ${PORT}`);
-      console.log(`   Accessible at your Render domain (https://<your-app>.onrender.com)`);
+      console.log(`   Open at: https://${process.env.CODESPACE_NAME}-${PORT}.app.github.dev/login`);
     });
 
     // Graceful shutdown
