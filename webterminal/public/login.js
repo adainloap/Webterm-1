@@ -23,23 +23,29 @@ export async function loginWithGitHub() {
     const result = await signInWithPopup(auth, githubProvider);
     const user = result.user;
 
+    // Some GitHub accounts hide email → fallback to uid
+    const email = user.email || null; // 👈 safe fallback
+
     const response = await fetch("/api/social-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         uid: user.uid,
-        email: user.email,
-        displayName: user.displayName
+        email: email,                   // 👈 send null if missing
+        displayName: user.displayName || "GitHubUser" // 👈 fallback name
       })
     });
 
     const data = await response.json();
-    if (data.success) window.location.href = "/terminal";
-    else alert(data.message || "Login failed");
+    if (data.success) {
+      window.location.href = "/terminal";
+    } else {
+      alert(data.message || "Login failed");
+    }
 
   } catch (error) {
     console.error("GitHub login error:", error);
-    alert("GitHub login failed.");
+    alert("GitHub login failed: " + error.message);
   }
 }
 
@@ -54,17 +60,20 @@ export async function loginWithGoogle() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         uid: user.uid,
-        email: user.email,
-        displayName: user.displayName
+        email: user.email || null,             // 👈 safe fallback
+        displayName: user.displayName || "GoogleUser" // 👈 fallback
       })
     });
 
     const data = await response.json();
-    if (data.success) window.location.href = "/terminal";
-    else alert(data.message || "Login failed");
+    if (data.success) {
+      window.location.href = "/terminal";
+    } else {
+      alert(data.message || "Login failed");
+    }
 
   } catch (error) {
     console.error("Google login error:", error);
-    alert("Google login failed.");
+    alert("Google login failed: " + error.message);
   }
 }

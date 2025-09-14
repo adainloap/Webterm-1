@@ -1129,24 +1129,39 @@ app.post("/reset-password", (req, res) => {
 });
 app.post("/api/social-login", async (req, res) => {
   const { uid, email, displayName } = req.body;
-  if (!uid || !email) return res.status(400).json({ success: false, message: "Invalid data" });
+  if (!uid) return res.status(400).json({ success: false, message: "Invalid data" }); 
+  // 👆 changed: only require uid, not email
 
   try {
-    // Check if user already exists
-    let user = await db.get(`SELECT * FROM users WHERE email = ?`, [email]);
+    let user;
+
+    if (email) {
+      // Try lookup by email if provided
+      user = await db.get(`SELECT * FROM users WHERE email = ?`, [email]);
+    } else {
+      // Fallback to lookup by uid if no email (GitHub sometimes hides it)
+      user = await db.get(`SELECT * FROM users WHERE uid = ?`, [uid]);
+    }
 
     if (!user) {
       // Create new user in DB
       const now = new Date().toISOString();
-      const safeDisplayName = displayName || "User";  // <-- fallback here
-      const username = safeDisplayName.replace(/\s+/g, "") + Math.floor(Math.random() * 1000);
+      const safeDisplayName = displayName || "User";  // fallback name
+      let username = safeDisplayName.replace(/\s+/g, "") + Math.floor(Math.random() * 1000);
+
+      // Ensure username is unique (retry if taken)
+      let exists = await db.get(`SELECT * FROM users WHERE username = ?`, [username]);
+      while (exists) {
+        username = safeDisplayName.replace(/\s+/g, "") + Math.floor(Math.random() * 1000);
+        exists = await db.get(`SELECT * FROM users WHERE username = ?`, [username]);
+      }
 
       await db.run(
         `INSERT INTO users (username, email, uid, status, createdAt) VALUES (?, ?, ?, 'active', ?)`,
-        [username, email, uid, now]
+        [username, email || null, uid, now] // 👈 allow null email
       );
 
-      user = await db.get(`SELECT * FROM users WHERE email = ?`, [email]);
+      user = await db.get(`SELECT * FROM users WHERE uid = ?`, [uid]);
     }
 
     // Set session
@@ -1164,8 +1179,6 @@ app.post("/api/social-login", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
 // --- Make user admin ---
 app.post("/admin-make-admin", async (req, res) => {
   try {
