@@ -163,11 +163,27 @@ function getClientIP(req) {
 // ====================
 // ROUTES
 // ====================
+// ====================
+// ROUTES
+// ====================
+
+// Root route → send logged-in users to terminal, else to login
 app.get("/", (req, res) => {
   if (req.session?.user) {
     return res.redirect("/terminal");
   }
   res.redirect("/login");
+});
+
+// Login route (handles /login and /login/)
+app.get(["/login", "/login/"], (req, res) => {
+  if (req.session?.user) {
+    // already logged in → skip login page
+    return res.redirect("/terminal");
+  }
+
+  // not logged in → render login form
+  res.render("login", { error: null });
 });
 // --- Login Route with reCAPTCHA + Admin + Regular ---
 app.post("/login", async (req, res) => {
