@@ -1,12 +1,13 @@
-// login.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
 import { 
   getAuth, 
   GithubAuthProvider, 
   GoogleAuthProvider, 
+  OAuthProvider, 
   signInWithPopup 
 } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-auth.js";
 
+// IMPORTANT: Do not hardcode API keys. Use environment variables in your backend.
 const firebaseConfig = {
   apiKey: "AIzaSyDz30MLY_ffYF6QZbigcbNFCl-MuiCtFXw",
   authDomain: "webterminal-8489.firebaseapp.com",
@@ -21,6 +22,7 @@ const auth = getAuth(app);
 
 const githubProvider = new GithubAuthProvider();
 const googleProvider = new GoogleAuthProvider();
+const microsoftProvider = new OAuthProvider("microsoft.com");
 
 // ============================
 // GitHub login
@@ -29,26 +31,22 @@ export async function loginWithGitHub() {
   try {
     const result = await signInWithPopup(auth, githubProvider);
 
-    // Get OAuth credential
     const credential = GithubAuthProvider.credentialFromResult(result);
     const token = credential.accessToken;
 
-    // Fetch GitHub profile
     const ghRes = await fetch("https://api.github.com/user", {
       headers: { Authorization: `token ${token}` }
     });
     const ghProfile = await ghRes.json();
 
-    // Extract values
     const email = ghProfile.email || result.user.email || null;
     const username = ghProfile.login || result.user.displayName || "GitHubUser";
 
-    // Send to backend
     const response = await fetch("/api/social-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        uid: ghProfile.id,   // GitHub numeric ID
+        uid: ghProfile.id,
         email: email,
         displayName: username
       })
@@ -58,12 +56,11 @@ export async function loginWithGitHub() {
     if (data.success) {
       window.location.href = "/terminal";
     } else {
-      alert(data.message || "Login failed");
+      window.showMessage(data.message || "Login failed");
     }
-
   } catch (error) {
     console.error("GitHub login error:", error);
-    alert("GitHub login failed: " + error.message);
+    window.showMessage("GitHub login failed: " + error.message);
   }
 }
 
@@ -89,11 +86,40 @@ export async function loginWithGoogle() {
     if (data.success) {
       window.location.href = "/terminal";
     } else {
-      alert(data.message || "Login failed");
+      window.showMessage(data.message || "Login failed");
     }
-
   } catch (error) {
     console.error("Google login error:", error);
-    alert("Google login failed: " + error.message);
+    window.showMessage("Google login failed: " + error.message);
+  }
+}
+
+// ============================
+// Microsoft login
+// ============================
+export async function loginWithMicrosoft() {
+  try {
+    const result = await signInWithPopup(auth, microsoftProvider);
+    const user = result.user;
+
+    const response = await fetch("/api/social-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        uid: user.uid,
+        email: user.email || null,
+        displayName: user.displayName || "MicrosoftUser"
+      })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      window.location.href = "/terminal";
+    } else {
+      window.showMessage(data.message || "Login failed");
+    }
+  } catch (error) {
+    console.error("Microsoft login error:", error);
+    window.showMessage("Microsoft login failed: " + error.message);
   }
 }

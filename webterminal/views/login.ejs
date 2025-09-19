@@ -1,194 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Web Terminal Login</title>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#121212">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Terminal Login</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#121212">
 
-  <style>
-    .container {
-      width: 300px;
-      margin: 100px auto;
-      padding: 20px;
-      background-color: rgba(0, 0, 0, 0.75);
-      border-radius: 8px;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-      color: white;
-      position: relative;
-      z-index: 2;
-    }
-    h1 { text-align: center; font-size: 24px; }
-    label { display: block; margin: 10px 0 5px; }
-    input {
-      width: 100%;
-      padding: 8px;
-      margin: 5px 0 15px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
-    }
-    .error { color: #ff6b6b; font-size: 14px; margin-bottom: 15px; text-align: center; }
-    .login-btn {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      padding: 10px;
-      width: 100%;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    .login-btn:hover { background-color: #45a049; }
-    .login-btn:disabled { background-color: #4CAF50; opacity: 0.5; cursor: not-allowed; }
-    a { color: #7edcff; }
-    .oauth-btn {
-      margin-top: 10px;
-      width: 100%;
-      padding: 10px;
-      border-radius: 4px;
-      cursor: pointer;
-      border: none;
-      font-weight: bold;
-    }
-    .oauth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .github-btn { background-color: #333; color: white; }
-    .google-btn { background-color: #DB4437; color: white; }
-    .disabled-btn { background-color: #555; color: #ccc; cursor: not-allowed; }
+    <!-- reCAPTCHA script -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
-    .background-video {
-      position: fixed;
-      right: 0;
-      bottom: 0;
-      min-width: 100%;
-      min-height: 100%;
-      z-index: -1;
-      object-fit: cover;
-    }
-
-    .static-background {
-      background-image: url('/images/login-final-bg.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-    }
-
-    .tos-box {
-      margin-top: 10px;
-      font-size: 14px;
-      text-align: center;
-    }
-    .tos-box label {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .tos-box input[type="checkbox"] {
-      transform: scale(1.2);
-    }
-  </style>
+    <style>
+        body {
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #121212;
+            position: relative;
+        }
+        .container {
+            width: 300px;
+            margin: 100px auto;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.75);
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 2;
+        }
+        h1 { text-align: center; font-size: 24px; }
+        label { display: block; margin: 10px 0 5px; }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            background-color: #333;
+            color: white;
+        }
+        input:focus { outline: none; border-color: #7edcff; }
+        .error { color: #ff6b6b; font-size: 14px; margin-bottom: 15px; text-align: center; }
+        .login-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .login-btn:hover { background-color: #45a049; }
+        .login-btn:disabled { background-color: #555; opacity: 0.7; cursor: not-allowed; }
+        a { color: #7edcff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .oauth-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .oauth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .oauth-btn svg {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+        }
+        .oauth-btn span {
+            font-size: 16px;
+        }
+        .github-btn { background-color: #333; color: white; }
+        .google-btn { background-color: white; color: black; border: 1px solid #ccc; }
+        .microsoft-btn { background-color: #2F2F2F; color: white; }
+        .disabled-btn { background-color: #555; color: #ccc; cursor: not-allowed; }
+        .background-video {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            z-index: -1;
+            object-fit: cover;
+        }
+        .static-background {
+            background-image: url('/images/login-final-bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .tos-box {
+            margin-top: 10px;
+            font-size: 14px;
+            text-align: center;
+        }
+        .tos-box label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .tos-box input[type="checkbox"] {
+            transform: scale(1.2);
+        }
+        .password-wrapper {
+            position: relative;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .message-box.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+        .message-box.error {
+            background-color: #ff6b6b;
+        }
+        .message-box.success {
+            background-color: #4CAF50;
+        }
+    </style>
 </head>
 <body id="login-page">
 
-  <video autoplay muted playsinline id="bg-video" class="background-video">
-    <source src="/videos/log.mp4" type="video/mp4">
-  </video>
+    <video autoplay muted playsinline id="bg-video" class="background-video">
+        <source src="/videos/log.mp4" type="video/mp4">
+    </video>
 
-  <div class="container">
-    <h1>Login</h1>
-    <div style="text-align:center; margin-bottom:10px;">
-      <a href="/register">Create an account</a>
+    <div class="message-box" id="messageBox"></div>
+
+    <div class="container">
+        <h1>Login</h1>
+        <div style="text-align:center; margin-bottom:10px;">
+            <a href="/register">Create an account</a>
+        </div>
+
+        <% if (error) { %>
+            <div class="error"><%= error %></div>
+        <% } %>
+
+        <!-- Email/Password Login -->
+        <form id="loginForm" action="/login" method="POST">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required minlength="3">
+            <label for="password">Password</label>
+            <div class="password-wrapper">
+                <input type="password" id="password" name="password" required minlength="8">
+                <span class="password-toggle">👁️</span>
+            </div>
+            
+            <!-- reCAPTCHA widget -->
+            <div class="g-recaptcha" 
+                 data-sitekey="6LcUJM4rAAAAAJDx-QRAz04jkoHCXkNBDzJU6Vf5" 
+                 data-callback="recaptchaCallback"></div>
+            <button type="submit" class="login-btn" id="loginBtn" disabled>Login</button>
+            
+            <div style="text-align:center; margin-top:15px;">
+                <a href="/forgot-password">Forgot your password?</a>
+            </div>
+
+            <!-- Terms of Service checkbox -->
+            <div class="tos-box">
+                <label for="agreeTOS">
+                    <input type="checkbox" id="agreeTOS">
+                    <span>I agree to the <a href="/tos">Terms of Service</a></span>
+                </label>
+            </div>
+        </form>
+
+        <hr style="margin:20px 0; border-color:#555;">
+
+        <!-- OAuth Buttons with Logos -->
+        <button class="oauth-btn github-btn" id="githubBtn" onclick="loginWithGitHub()" disabled>
+            <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="white">
+                <title>GitHub</title>
+                <path d="M12 .297c-6.63 0-12 5.373-12 12 ..."/>
+            </svg>
+            <span>GitHub</span>
+        </button>
+        <button class="oauth-btn google-btn" id="googleBtn" onclick="loginWithGoogle()" disabled>
+            <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <title>Google</title>
+                <path d="M12.483 1.03C15.176.815 18.525..."/>
+            </svg>
+            <span>Google</span>
+        </button>
+        <button class="oauth-btn microsoft-btn" id="microsoftBtn" onclick="loginWithMicrosoft()" disabled>
+            <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <title>Microsoft</title>
+                <path d="M2 2h9v9H2zM13 2h9v9h-9zM2 13h9v9H2zM13 13h9v9h-9z"/>
+            </svg>
+            <span>Microsoft</span>
+        </button>
+        <button class="oauth-btn disabled-btn" disabled>Login with Apple (Coming Soon)</button>
+        <button class="oauth-btn disabled-btn" disabled>Login with Facebook (Coming Soon)</button>
     </div>
 
-    <% if (error) { %>
-      <div class="error"><%= error %></div>
-    <% } %>
+    <script>
+        // Video background logic
+        const video = document.getElementById('bg-video');
+        video.addEventListener('ended', () => {
+            video.style.display = 'none';
+            document.body.classList.add('static-background');
+        });
 
-    <!-- Email/Password Login -->
-    <form id="loginForm" action="/login" method="POST">
-      <label for="username">Username</label>
-      <input type="text" id="username" name="username" required>
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" required>
-      <button type="submit" class="login-btn" id="loginBtn" disabled>Login</button>
-      
-      <div style="text-align:center; margin-top:15px;">
-        <a href="/forgot-password">Forgot your password?</a>
-      </div>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (video.currentTime === video.duration) {
+                document.body.classList.add('static-background');
+                video.style.display = 'none';
+            }
+            // Initial check
+            validateForm();
+        });
 
-      <!-- Terms of Service checkbox -->
-      <div class="tos-box">
-        <label for="agreeTOS">
-          <input type="checkbox" id="agreeTOS">
-          <span>I agree to the <a href="/tos">Terms of Service</a></span>
-        </label>
-      </div>
-    </form>
+        // Custom message box logic
+        const messageBox = document.getElementById('messageBox');
+        window.showMessage = (message, type = 'error') => {
+            messageBox.textContent = message;
+            messageBox.className = `message-box show ${type}`;
+            setTimeout(() => { messageBox.classList.remove('show'); }, 5000);
+        };
 
-    <hr style="margin:20px 0; border-color:#555;">
+        // Form validation and button enabling logic
+        const tosCheckbox = document.getElementById('agreeTOS');
+        const loginBtn = document.getElementById('loginBtn');
+        const githubBtn = document.getElementById('githubBtn');
+        const googleBtn = document.getElementById('googleBtn');
+        const microsoftBtn = document.getElementById('microsoftBtn');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const passwordToggle = document.querySelector('.password-toggle');
 
-    <!-- OAuth Buttons -->
-    <button class="oauth-btn github-btn" id="githubBtn" onclick="loginWithGitHub()" disabled>Login with GitHub</button>
-    <button class="oauth-btn google-btn" id="googleBtn" onclick="loginWithGoogle()" disabled>Login with Google</button>
-    <button class="oauth-btn disabled-btn" disabled>Login with Apple (Coming Soon)</button>
-    <button class="oauth-btn disabled-btn" disabled>Login with Facebook (Coming Soon)</button>
-  </div>
+        const validateForm = () => {
+            const isUsernameValid = usernameInput.checkValidity();
+            const isPasswordValid = passwordInput.checkValidity();
+            const isTOSChecked = tosCheckbox.checked;
 
-  <script>
-    // Handle background video loop or transition to static image
-    const video = document.getElementById('bg-video');
-    video.addEventListener('ended', function() {
-      video.style.display = 'none';
-      document.body.classList.add('static-background');
-    });
+            let recaptchaCompleted = false;
+            try { recaptchaCompleted = grecaptcha.getResponse().length > 0; } catch (e) {}
 
-    // Get all buttons that need to be disabled/enabled
-    const tosCheckbox = document.getElementById('agreeTOS');
-    const loginBtn = document.getElementById('loginBtn');
-    const githubBtn = document.getElementById('githubBtn');
-    const googleBtn = document.getElementById('googleBtn');
+            // Regular login requires everything
+            const allValid = isUsernameValid && isPasswordValid && isTOSChecked && recaptchaCompleted;
+            loginBtn.disabled = !allValid;
 
-    // Add a single listener to handle all buttons
-    tosCheckbox.addEventListener('change', () => {
-      const enabled = tosCheckbox.checked;
-      loginBtn.disabled = !enabled;
-      githubBtn.disabled = !enabled;
-      googleBtn.disabled = !enabled;
-    });
+            // OAuth requires TOS + reCAPTCHA
+            const oauthEnabled = isTOSChecked && recaptchaCompleted;
+            githubBtn.disabled = !oauthEnabled;
+            googleBtn.disabled = !oauthEnabled;
+            microsoftBtn.disabled = !oauthEnabled;
+        };
 
-    // This handles a case where a previous video might have ended,
-    // so we set the initial state correctly
-    document.addEventListener('DOMContentLoaded', () => {
-      if (video.currentTime === video.duration) {
-        document.body.classList.add('static-background');
-        video.style.display = 'none';
-      }
-    });
-  </script>
+        usernameInput.addEventListener('input', validateForm);
+        passwordInput.addEventListener('input', validateForm);
+        tosCheckbox.addEventListener('change', validateForm);
 
-  <!-- External Firebase Login JS -->
-  <script type="module">
-    import { loginWithGitHub, loginWithGoogle } from "/login.js";
-    window.loginWithGitHub = loginWithGitHub;
-    window.loginWithGoogle = loginWithGoogle;
-  </script>
+        // Called by reCAPTCHA
+        window.recaptchaCallback = () => validateForm();
 
-  <!-- Service Worker Registration -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(registration => {
-            console.log('Service Worker registered with scope:', registration.scope);
-          })
-          .catch(error => {
-            console.error('Service Worker registration failed:', error);
-          });
-      });
-    }
-  </script>
+        // Password visibility toggle
+        passwordToggle.addEventListener('click', () => {
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                passwordToggle.textContent = '🙈';
+            } else {
+                passwordInput.type = 'password';
+                passwordToggle.textContent = '👁️';
+            }
+        });
+    </script>
+
+    <!-- External Firebase Login JS -->
+    <script type="module">
+        import { loginWithGitHub, loginWithGoogle, loginWithMicrosoft } from "/login.js";
+        window.loginWithGitHub = loginWithGitHub;
+        window.loginWithGoogle = loginWithGoogle;
+        window.loginWithMicrosoft = loginWithMicrosoft;
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered:', reg.scope))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>

@@ -169,78 +169,103 @@ app.get("/", (req, res) => {
   }
   res.redirect("/login");
 });
-// --- Login ---
-app.get("/login", (req, res) => res.render("login", { error: null, message: null }));
-
+// --- Login Route with reCAPTCHA + Admin + Regular ---
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-  const lockKey = username;
-  if (isLockedOut(lockKey)) return res.render("login", { error: "Too many failed attempts", message: null });
+  const { username, password, "g-recaptcha-response": recaptchaToken } = req.body;
 
-  const clientPublicIP = getClientIP(req);
-  const serverPrivateIP = getPrivateIP();
+  try {
+    // === Validate reCAPTCHA ===
+    const verifyUrl = "https://www.google.com/recaptcha/api/siteverify";
+    const recaptchaRes = await fetch(verifyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        secret: process.env.RECAPTCHA_SECRET,
+        response: recaptchaToken,
+        remoteip: req.ip,
+      }),
+    });
 
-  // Admin login
-  if (username === adminUser.username) {
-    if (!bcrypt.compareSync(password, adminUser.password)) {
-      recordFailedAttempt(lockKey);
-      return res.render("login", { error: "Invalid credentials", message: null });
-    }
-    clearFailedAttempts(lockKey);
-
-    const user = await findUser(adminUser.username);
-    if (!user) {
-      return res.render("login", { error: "Admin user not found in database.", message: null });
-    }
-
-    if (user.is2FAEnabled === 'none') {
-      const secret = speakeasy.generateSecret({
-        name: 'WebTerminal:Admin',
+    const recaptchaData = await recaptchaRes.json();
+    if (!recaptchaData.success) {
+      return res.render("login", {
+        error: "reCAPTCHA validation failed. Please try again.",
+        message: null,
       });
-      req.session.twoFactorSecret = secret.base32;
+    }
+// Create a unique lock key per user + IP for rate limiting
+const lockKey = `login:${username}:${req.ip}`;
+
+    // === Admin login special case ===
+    if (username === adminUser.username) {
+      if (!bcrypt.compareSync(password, adminUser.password)) {
+        recordFailedAttempt(lockKey);
+        return res.render("login", { error: "Invalid credentials", message: null });
+      }
+      clearFailedAttempts(lockKey);
+
+      const user = await findUser(adminUser.username);
+      if (!user) {
+        return res.render("login", { error: "Admin user not found.", message: null });
+      }
+
+      if (user.is2FAEnabled === "none") {
+        const secret = speakeasy.generateSecret({ name: "WebTerminal:Admin" });
+        req.session.twoFactorSecret = secret.base32;
+        req.session.userToVerify = user;
+        return res.redirect("/2fa-login-admin");
+      }
+
       req.session.userToVerify = user;
       return res.redirect("/2fa-login-admin");
     }
 
-    req.session.userToVerify = user;
-    return res.redirect("/2fa-login-admin");
+    // === Regular user login ===
+    const user = await findUser(username);
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+      recordFailedAttempt(lockKey);
+      return res.render("login", { error: "Invalid credentials", message: null });
+    }
+
+    if (user.status === "pending") {
+      return res.render("login", { error: "Account not verified.", message: null });
+    }
+
+    clearFailedAttempts(lockKey);
+
+    if (user.is2FAEnabled !== "none") {
+      req.session.userToVerify = user;
+      req.session.twoFactorMethod = user.is2FAEnabled;
+      return res.redirect("/2fa-login");
+    }
+
+    user.isAdmin = !!user.isAdmin;
+    user.public_ip = clientPublicIP;
+    user.private_ip = getPrivateIP();
+    user.status = "online";
+
+    req.session.user = user;
+    req.session.is2faVerified = true;
+
+    setPublicIP(user.username, clientPublicIP);
+    setPrivateIP(user.username, user.private_ip);
+
+    req.session.save(() => {
+      io.emit("user_update", {
+        username: user.username,
+        status: "online",
+        public_ip: clientPublicIP,
+        private_ip: user.private_ip,
+      });
+      res.redirect("/terminal");
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.render("login", {
+      error: "Something went wrong. Please try again later.",
+      message: null,
+    });
   }
-
-  // Regular user login
-  const user = await findUser(username);
-
-  if (!user || !bcrypt.compareSync(password, user.password)) {
-    recordFailedAttempt(lockKey);
-    return res.render("login", { error: "Invalid credentials", message: null });
-  }
-
-  if (user.status === "pending") {
-    return res.render("login", { error: "Account not verified.", message: null });
-  }
-
-  clearFailedAttempts(lockKey);
-
-  if (user.is2FAEnabled !== 'none') {
-    req.session.userToVerify = user;
-    req.session.twoFactorMethod = user.is2FAEnabled;
-    return res.redirect("/2fa-login");
-  }
-
-  user.isAdmin = !!user.isAdmin;
-  user.public_ip = clientPublicIP;
-  user.private_ip = getPrivateIP();
-  user.status = "online";
-
-  req.session.user = user;
-  req.session.is2faVerified = true;
-
-  setPublicIP(user.username, clientPublicIP);
-  setPrivateIP(user.username, user.private_ip);
-
-  req.session.save(() => {
-    io.emit("user_update", { username: user.username, status: "online", public_ip: clientPublicIP, private_ip: user.private_ip });
-    res.redirect("/terminal");
-  });
 });
 
 // --- Register ---
