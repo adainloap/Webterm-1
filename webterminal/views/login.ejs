@@ -271,8 +271,8 @@
             const allValid = isUsernameValid && isPasswordValid && isTOSChecked && recaptchaCompleted;
             loginBtn.disabled = !allValid;
 
-            // OAuth requires TOS + reCAPTCHA
-            const oauthEnabled = isTOSChecked && recaptchaCompleted;
+            // OAuth requires only TOS (not reCAPTCHA)
+            const oauthEnabled = isTOSChecked;
             githubBtn.disabled = !oauthEnabled;
             googleBtn.disabled = !oauthEnabled;
             microsoftBtn.disabled = !oauthEnabled;

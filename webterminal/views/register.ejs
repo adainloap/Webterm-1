@@ -532,7 +532,11 @@
                 <label class="checkbox-label">
                     <input type="checkbox" id="acceptPolicy" name="acceptPolicy" required disabled/> I have read and agree to the Privacy Policy.
                 </label>
-            </div>
+            </div><!-- reCAPTCHA widget -->
+<div class="g-recaptcha" 
+     data-sitekey="6LcUJM4rAAAAAJDx-QRAz04jkoHCXkNBDzJU6Vf5" 
+     data-callback="recaptchaCallback"></div>
+
             <div class="form-group">
                 <button type="submit">Register</button>
             </div>
@@ -549,6 +553,14 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path><path d="M1 1h22v22H1z" fill="none"></path></svg>
                 Sign up with Google
             </button>
+            <button class="oauth-btn microsoft-btn" id="microsoftBtn" onclick="registerWithMicrosoft()" disabled>
+    <svg class="icon" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <title>Microsoft</title>
+        <path d="M2 2h9v9H2zM13 2h9v9h-9zM2 13h9v9H2zM13 13h9v9h-9z"/>
+    </svg>
+    Sign up with Microsoft
+</button>
+
             <button class="oauth-btn apple-btn" id="appleBtn" onclick="registerWithApple()" disabled>
                 <svg class="icon" fill="currentColor" viewBox="0 0 24 24"><path d="M19.33 12.26c0 3.43-2.24 5.36-4.36 5.36-1.54 0-2.39-1.03-3.6-1.03s-2.12 1.03-3.6 1.03c-2.12 0-4.36-1.93-4.36-5.36 0-3.37 2.45-5.24 4.51-5.24 1.54 0 2.51.98 3.72.98s2.12-.98 3.6-.98c2.06 0 4.58 1.87 4.58 5.24zm-7.6-7.85c.98-1.23 1.87-2.6 1.87-3.92-.06-1.09-.81-1.68-1.68-1.74-1.35-.06-2.66.98-3.6 2.18-.87 1.15-1.87 2.6-1.87 3.92.06 1.09.81 1.68 1.68 1.74 1.35.06 2.66-.98 3.6-2.18z"/></svg>
                 Sign up with Apple
@@ -578,16 +590,17 @@
         const googleBtn = document.getElementById('googleBtn');
         const appleBtn = document.getElementById('appleBtn');
         const facebookBtn = document.getElementById('facebookBtn');
+const microsoftBtn = document.getElementById('microsoftBtn');
 
-        function updateOauthButtons() {
-            const enabled = tosCheckbox.checked && !tosCheckbox.disabled;
-            githubBtn.disabled = !enabled;
-            googleBtn.disabled = !enabled;
-            appleBtn.disabled = !enabled;
-            facebookBtn.disabled = !enabled;
-        }
-
-        tosCheckbox.addEventListener('change', updateOauthButtons);
+function updateOauthButtons() {
+    const enabled = tosCheckbox.checked && !tosCheckbox.disabled;
+    githubBtn.disabled = !enabled;
+    googleBtn.disabled = !enabled;
+    appleBtn.disabled = !enabled;
+    facebookBtn.disabled = !enabled;
+    microsoftBtn.disabled = !enabled;
+}       tosCheckbox.addEventListener('change', updateOauthButtons);
+       tosCheckbox.addEventListener('change', updateOauthButtons);
 
         const policyContent = document.getElementById('policyContent');
         const acceptCheckbox = document.getElementById('acceptPolicy');
@@ -609,17 +622,20 @@
     </script>
 
     <script type="module">
-        import { 
-            registerWithGitHub, 
-            registerWithGoogle,
-            registerWithApple,
-            registerWithFacebook
-        } from "/register.js";
-        
-        window.registerWithGitHub = registerWithGitHub;
-        window.registerWithGoogle = registerWithGoogle;
-        window.registerWithApple = registerWithApple;
-        window.registerWithFacebook = registerWithFacebook;
+       import { 
+    registerWithGitHub, 
+    registerWithGoogle,
+    registerWithApple,
+    registerWithFacebook,
+    registerWithMicrosoft
+} from "/register.js";
+
+window.registerWithGitHub = registerWithGitHub;
+window.registerWithGoogle = registerWithGoogle;
+window.registerWithApple = registerWithApple;
+window.registerWithFacebook = registerWithFacebook;
+window.registerWithMicrosoft = registerWithMicrosoft;
+        window.registerWi
     </script><script>
     // Show parent email if user is under 13
     const dobDay = document.getElementById("dob-day");
@@ -648,6 +664,8 @@
     }
 
     [dobDay, dobMonth, dobYear].forEach(el => el.addEventListener("change", checkAge));
-</script>
+</script><!-- reCAPTCHA script -->
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
 </body>
 </html>
