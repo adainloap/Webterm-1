@@ -652,7 +652,6 @@ app.post("/2fa-verify-email", (req, res) => {
     res.render("2fa-login", { error: "Invalid email code." });
   }
 });
-
 // --- 2FA Setup Page ---
 app.get("/setup-2fa", async (req, res) => {
   if (!req.session.user || req.session.user?.isAdmin) {
@@ -682,21 +681,22 @@ app.get("/setup-2fa", async (req, res) => {
   });
 
   // Generate QR code as a data URI
-  const qrCodeURL = await QRCode.toDataURL(otpauthUrl);
+  const qrCodeImage = await QRCode.toDataURL(otpauthUrl);
 
   res.render("setup-2fa", {
-    qrCodeURL,
+    qrCodeImage,
     secret: secret.base32,
     error: null,
+    user: userFromDb,   // ✅ so <%= user.email %> works in EJS
   });
 });
 
-
 // --- 2FA Setup POST (Authenticator App) ---
-app.post("/setup-2fa", (req, res) => {
+app.post("/setup-2fa", async (req, res) => {
   if (req.session.user?.isAdmin) {
     return res.redirect("/terminal");
   }
+
   const { token } = req.body;
   const user = req.session.user;
   const tempSecret = req.session.twoFactorSecret;
@@ -720,15 +720,29 @@ app.post("/setup-2fa", (req, res) => {
           console.error("Database error saving 2FA secret:", err.message);
           return res.status(500).send("Error enabling 2FA.");
         }
-        user.is2FAEnabled = 'authenticator';
+        user.is2FAEnabled = "authenticator";
         delete req.session.twoFactorSecret;
         res.redirect("/terminal?2fa=success");
       }
     );
   } else {
-    res.render("setup-2fa", { error: "Invalid 2FA code. Please try again." });
+    // regenerate qrCodeImage so the page doesn’t break
+    const otpauthUrl = speakeasy.otpauthURL({
+      secret: tempSecret,
+      label: "WebTerminal:" + user.username,
+      issuer: "WebTerminal",
+    });
+    const qrCodeImage = await QRCode.toDataURL(otpauthUrl);
+
+    res.render("setup-2fa", {
+      qrCodeImage,
+      secret: tempSecret,
+      error: "Invalid 2FA code. Please try again.",
+      user,  // ✅ keep user available
+    });
   }
 });
+
 
 // --- NEW: Enable Email 2FA ---
 app.post("/enable-email-2fa", (req, res) => {
@@ -938,7 +952,11 @@ app.get("/settings", async (req, res) => {
       return res.status(404).send("User not found.");
     }
 
-    res.render("settings", { user: userFromDb });
+    res.render("settings", {
+  user: userFromDb,
+  query: req.query  // ✅ make query available to EJS
+});
+
   } catch (error) {
     console.error("Error fetching user data for settings:", error);
     res.status(500).send("An error occurred while loading settings.");

@@ -1,206 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Settings</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        'primary-accent': '#3b82f6', // blue-500
-                        'secondary-bg': '#1f2937', // gray-800
-                        'tertiary-bg': '#374151', // gray-700
-                    }
-                },
-            },
-        };
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            'primary-accent': '#3b82f6', // blue-500
+            'secondary-bg': '#1f2937', // gray-800
+            'tertiary-bg': '#374151', // gray-700
+          }
+        },
+      },
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-6">
 
-    <div class="bg-secondary-bg p-8 rounded-xl shadow-2xl w-full max-w-2xl">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-white">Account Settings ⚙️</h1>
-            <a href="/terminal" class="bg-primary-accent hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-300 shadow-md">
-                Back to Terminal
-            </a>
-        </div>
-
-        <div class="space-y-6">
-
-            <div class="bg-tertiary-bg p-6 rounded-xl shadow-inner border border-gray-600">
-                <h2 class="text-xl font-semibold text-white mb-4">Profile Information</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="flex flex-col">
-                        <span class="font-medium text-gray-400">Username</span>
-                        <span class="text-white text-lg"><%= user.username %></span>
-                    </div>
-                    <div class="flex flex-col">
-                        <span class="font-medium text-gray-400">Email</span>
-                        <span class="text-white text-lg"><%= user.email %></span>
-                    </div>
-                    <div class="flex flex-col">
-                        <span class="font-medium text-gray-400">Public IP</span>
-                        <span class="text-white text-lg"><%= user.public_ip %></span>
-                    </div>
-                    <div class="flex flex-col">
-                        <span class="font-medium text-gray-400">Status</span>
-                        <span class="text-white text-lg"><%= user.status %></span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-tertiary-bg p-6 rounded-xl shadow-inner border border-gray-600">
-                <h2 class="text-xl font-semibold text-white mb-4">Security Settings</h2>
-                
-                <div class="flex items-center justify-between mb-4">
-                    <span class="font-medium text-gray-400">Two-Factor Authentication:</span>
-                    <% if (user.is2FAEnabled !== 'none') { %>
-                        <span class="bg-green-500 text-white text-xs font-semibold py-1 px-3 rounded-full">
-                            Enabled (<%= user.is2FAEnabled.charAt(0).toUpperCase() + user.is2FAEnabled.slice(1) %>)
-                        </span>
-                    <% } else { %>
-                        <span class="bg-red-500 text-white text-xs font-semibold py-1 px-3 rounded-full">Disabled</span>
-                    <% } %>
-                </div>
-
-                <div class="border-t border-gray-600 pt-4 mt-4">
-                    <% if (user.is2FAEnabled === 'none') { %>
-                        <p class="text-gray-400 mb-4">Protect your account by enabling a 2FA method.</p>
-                        <a href="/setup-2fa" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-300 shadow-md mb-2">
-                            Set up Authenticator App (TOTP)
-                        </a>
-                        <button id="enable-email-2fa" class="block w-full text-center bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-300 shadow-md mb-2">
-                            Set up Email 2FA
-                        </button>
-                        <button id="setup-webauthn" class="block w-full text-center bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-300 shadow-md">
-                            Set up WebAuthn (Passkeys)
-                        </button>
-                    <% } else { %>
-                        <p class="text-gray-400 mb-4">Two-Factor Authentication is currently enabled. You can disable it below.</p>
-                        <form action="/disable-2fa" method="POST">
-                            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-300 shadow-md">
-                                Disable 2FA
-                            </button>
-                        </form>
-                    <% } %>
-                </div>
-            </div>
-
-            <div class="bg-tertiary-bg p-6 rounded-xl shadow-inner border border-gray-600">
-                <h2 class="text-xl font-semibold text-white mb-4">Account Management</h2>
-                <p class="text-gray-400 mb-4">This action is permanent and cannot be undone.</p>
-                <form action="/delete-account" method="POST" onsubmit="return confirm('Are you sure you want to delete your account? This action is permanent.');">
-                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-300 shadow-md">
-                        Delete My Account
-                    </button>
-                </form>
-            </div>
-
-        </div>
+  <div class="bg-secondary-bg p-8 rounded-xl shadow-2xl w-full max-w-2xl">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold text-white">Account Settings ⚙️</h1>
+      <a href="/terminal" class="bg-primary-accent hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-300 shadow-md">
+        Back to Terminal
+      </a>
     </div>
 
-    <script>
-        // JavaScript to handle button clicks and form submissions
-        document.addEventListener('DOMContentLoaded', () => {
+    <!-- Flash Messages -->
+<% if (typeof query !== "undefined" && query['2fa']) { %>
+  <% if (query['2fa'] === "enabled") { %>
+    <div class="mb-4 p-4 rounded-lg bg-green-600 text-white font-medium">
+      ✅ Two-Factor Authentication has been enabled successfully.
+    </div>
+  <% } else if (query['2fa'] === "disabled") { %>
+    <div class="mb-4 p-4 rounded-lg bg-yellow-600 text-white font-medium">
+      ⚠️ Two-Factor Authentication has been disabled.
+    </div>
+  <% } else if (query['2fa'] === "error") { %>
+    <div class="mb-4 p-4 rounded-lg bg-red-600 text-white font-medium">
+      ❌ There was an error updating Two-Factor Authentication. Please try again.
+    </div>
+  <% } %>
+<% } %>
 
-            const is2FAEnabled = '<%= user.is2FAEnabled %>';
+    <div class="space-y-6">
 
-            const emailButton = document.getElementById('enable-email-2fa');
-            const webauthnButton = document.getElementById('setup-webauthn');
+      <!-- Profile Info -->
+      <div class="bg-tertiary-bg p-6 rounded-xl shadow-inner border border-gray-600">
+        <h2 class="text-xl font-semibold text-white mb-4">Profile Information</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="flex flex-col">
+            <span class="font-medium text-gray-400">Username</span>
+            <span class="text-white text-lg"><%= user.username %></span>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-medium text-gray-400">Email</span>
+            <span class="text-white text-lg"><%= user.email %></span>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-medium text-gray-400">Public IP</span>
+            <span class="text-white text-lg"><%= user.public_ip %></span>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-medium text-gray-400">Status</span>
+            <span class="text-white text-lg"><%= user.status %></span>
+          </div>
+        </div>
+      </div>
 
-            if (emailButton) {
-                emailButton.addEventListener('click', async () => {
-                    if (is2FAEnabled !== 'none') {
-                        alert('2FA is already enabled. Please disable it first before setting up a new method.');
-                        return;
-                    }
-                    // The rest of your existing fetch logic is correct here
-                    const originalText = emailButton.textContent;
-                    emailButton.textContent = 'Enabling...';
-                    emailButton.disabled = true;
+      <!-- Security Settings -->
+      <div class="bg-tertiary-bg p-6 rounded-xl shadow-inner border border-gray-600">
+        <h2 class="text-xl font-semibold text-white mb-4">Security Settings</h2>
+        
+        <div class="flex items-center justify-between mb-4">
+          <span class="font-medium text-gray-400">Two-Factor Authentication:</span>
+          <% if (user.is2FAEnabled !== 'none') { %>
+            <span class="bg-green-500 text-white text-xs font-semibold py-1 px-3 rounded-full">
+              Enabled
+            </span>
+          <% } else { %>
+            <span class="bg-red-500 text-white text-xs font-semibold py-1 px-3 rounded-full">
+              Disabled
+            </span>
+          <% } %>
+        </div>
 
-                    try {
-                        const response = await fetch('/enable-email-2fa', {
-                            method: 'POST',
-                        });
+        <div class="border-t border-gray-600 pt-4 mt-4">
+          <% if (user.is2FAEnabled === 'none') { %>
+            <p class="text-gray-400 mb-4">Protect your account by enabling two-factor authentication.</p>
+            <a href="/setup-2fa" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-300 shadow-md">
+              Enable 2FA
+            </a>
+          <% } else { %>
+            <p class="text-gray-400 mb-4">Two-Factor Authentication is currently enabled. You can disable it below.</p>
+            <form action="/disable-2fa" method="POST">
+              <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-300 shadow-md">
+                Disable 2FA
+              </button>
+            </form>
+          <% } %>
+        </div>
+      </div>
 
-                        if (response.ok) {
-                            alert('Email 2FA has been enabled successfully!');
-                            window.location.reload();
-                        } else {
-                            const errorText = await response.text();
-                            alert('Failed to enable Email 2FA: ' + errorText);
-                        }
-                    } catch (error) {
-                        alert('An error occurred. Please try again.');
-                        console.error('Fetch error:', error);
-                    } finally {
-                        emailButton.textContent = originalText;
-                        emailButton.disabled = false;
-                    }
-                });
-            }
+      <!-- Account Management -->
+      <div class="bg-tertiary-bg p-6 rounded-xl shadow-inner border border-gray-600">
+        <h2 class="text-xl font-semibold text-white mb-4">Account Management</h2>
+        <p class="text-gray-400 mb-4">This action is permanent and cannot be undone.</p>
+        <form action="/delete-account" method="POST" onsubmit="return confirm('Are you sure you want to delete your account? This action is permanent.');">
+          <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-300 shadow-md">
+            Delete My Account
+          </button>
+        </form>
+      </div>
 
-            if (webauthnButton) {
-                webauthnButton.addEventListener('click', async () => {
-                    if (is2FAEnabled !== 'none') {
-                        alert('2FA is already enabled. Please disable it first.');
-                        return;
-                    }
-                    // The rest of your existing fetch logic is correct here
-                    const originalText = webauthnButton.textContent;
-                    webauthnButton.textContent = 'Starting registration...';
-                    webauthnButton.disabled = true;
+    </div>
+  </div>
 
-                    try {
-                        const response = await fetch('/2fa-webauthn-start-registration', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                        });
-
-                        if (!response.ok) {
-                            throw new Error('Failed to start WebAuthn registration.');
-                        }
-
-                        const options = await response.json();
-                        const attestationResult = await navigator.credentials.create({ publicKey: options });
-
-                        const finishResponse = await fetch('/2fa-webauthn-finish-registration', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(attestationResult)
-                        });
-
-                        const result = await finishResponse.json();
-                        if (result.verified) {
-                            alert('WebAuthn (Passkey) has been set up successfully!');
-                            window.location.reload();
-                        } else {
-                            alert('WebAuthn registration failed: ' + result.error);
-                        }
-                    } catch (error) {
-                        alert('An error occurred during WebAuthn setup. Please ensure your browser supports WebAuthn.');
-                        console.error('WebAuthn error:', error);
-                    } finally {
-                        webauthnButton.textContent = originalText;
-                        webauthnButton.disabled = false;
-                    }
-                });
-            }
-        });
-    </script>
 </body>
 </html>
